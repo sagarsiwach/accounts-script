@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+  <style>
+    :root {
+      --primary: #3f51b5;
+      --text-primary: #212121;
+      --text-secondary: #757575;
+      --divider: #e0e0e0;
+      --success: #4caf50;
+      --error: #f44336;
+      --background: #fafafa;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+    }
+
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .content {
+      padding: 16px;
+      max-height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar select {
+      padding: 8px 12px;
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      font-size: 13px;
+      background: white;
+    }
+
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .log-table th {
+      text-align: left;
+      padding: 12px 8px;
+      background: #f5f5f5;
+      border-bottom: 2px solid var(--divider);
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .log-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .status-badge.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-badge.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .status-badge.skipped {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .org-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e3f2fd;
+      color: #1565c0;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .error-message {
+      color: var(--error);
+      font-size: 12px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .material-icons {
+      font-size: 48px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Run Logs</h2>
+  </div>
+
+  <div class="content">
+    <div class="filter-bar">
+      <select id="filterOrg" onchange="applyFilters()">
+        <option value="">All Organizations</option>
+      </select>
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+        <option value="SUCCESS">Success</option>
+        <option value="ERROR">Error</option>
+        <option value="SKIPPED">Skipped</option>
+      </select>
+      <select id="filterSource" onchange="applyFilters()">
+        <option value="">All Sources</option>
+        <option value="PURCHASE">Purchase</option>
+        <option value="SALES">Sales</option>
+        <option value="BANK">Bank</option>
+        <option value="LEDGER">Ledger</option>
+      </select>
+    </div>
+
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Org</th>
+          <th>Source</th>
+          <th>Rows</th>
+          <th>Status</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody id="logBody">
+        <tr>
+          <td colspan="6" class="empty-state">
+            <i class="material-icons">hourglass_empty</i>
+            <p>Loading logs...</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let allLogs = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadLogs();
+      loadOrgFilter();
+    });
+
+    function loadLogs() {
+      google.script.run
+        .withSuccessHandler(function(logs) {
+          allLogs = logs || [];
+          renderLogs(allLogs);
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('logBody').innerHTML = '<tr><td colspan="6" class="empty-state"><i class="material-icons">error</i><p>Failed to load logs</p></td></tr>';
+        })
+        .getRecentLogsForUI();
+    }
+
+    function loadOrgFilter() {
+      google.script.run
+        .withSuccessHandler(function(orgs) {
+          const select = document.getElementById('filterOrg');
+          orgs.forEach(function(org) {
+            select.innerHTML += '<option value="' + org.code + '">' + org.code + '</option>';
+          });
+        })
+        .getActiveOrgs();
+    }
+
+    function applyFilters() {
+      const orgFilter = document.getElementById('filterOrg').value;
+      const statusFilter = document.getElementById('filterStatus').value;
+      const sourceFilter = document.getElementById('filterSource').value;
+
+      const filtered = allLogs.filter(function(log) {
+        if (orgFilter && log.orgCode !== orgFilter) return false;
+        if (statusFilter && log.status !== statusFilter) return false;
+        if (sourceFilter && log.sourceType !== sourceFilter) return false;
+        return true;
+      });
+
+      renderLogs(filtered);
+    }
+
+    function renderLogs(logs) {
+      const tbody = document.getElementById('logBody');
+
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="material-icons">inbox</i><p>No logs found</p></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = logs.map(function(log) {
+        const time = new Date(log.timestamp).toLocaleString('en-IN', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        const statusClass = log.status.toLowerCase();
+        const rows = (log.rowsFetched || 0) + (log.rowsWritten || 0);
+
+        return '<tr>' +
+          '<td>' + time + '</td>' +
+          '<td><span class="org-badge">' + log.orgCode + '</span></td>' +
+          '<td>' + log.sourceType + '</td>' +
+          '<td>' + rows + '</td>' +
+          '<td><span class="status-badge ' + statusClass + '">' + log.status + '</span></td>' +
+          '<td class="error-message" title="' + (log.errorMessage || '') + '">' + (log.errorMessage || '-') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+  </script>
+</body>
+</html>

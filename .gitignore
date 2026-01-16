@@ -1,3 +1,31 @@
+# Clasp
 .clasp.json
-node_modules/
 .clasprc.json
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+build/

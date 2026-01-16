@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Material Design Lite -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+  <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+  <style>
+    :root {
+      --primary: #3f51b5;
+      --primary-dark: #303f9f;
+      --accent: #ff4081;
+      --text-primary: #212121;
+      --text-secondary: #757575;
+      --divider: #bdbdbd;
+      --background: #fafafa;
+      --surface: #ffffff;
+      --success: #4caf50;
+      --error: #f44336;
+      --warning: #ff9800;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--text-primary);
+    }
+
+    .sidebar-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Header */
+    .sidebar-header {
+      background: var(--primary);
+      color: white;
+      padding: 20px 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .sidebar-header h1 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .sidebar-header p {
+      margin: 0;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-indicator.success { background: var(--success); }
+    .status-indicator.error { background: var(--error); }
+    .status-indicator.warning { background: var(--warning); }
+    .status-indicator.idle { background: var(--divider); }
+
+    .status-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Main Content */
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: #f5f5f5;
+      border-color: var(--primary);
+    }
+
+    .action-btn:active {
+      background: #eeeeee;
+    }
+
+    .action-btn.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .action-btn.primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .action-btn .material-icons {
+      margin-right: 12px;
+      font-size: 20px;
+    }
+
+    .action-btn .btn-text {
+      flex: 1;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .action-btn .btn-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .action-btn.primary .btn-subtitle {
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Org Selector */
+    .org-selector {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      font-size: 14px;
+      background: var(--surface);
+      margin-bottom: 12px;
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    /* Recent Logs */
+    .log-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .log-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .log-details {
+      flex: 1;
+    }
+
+    .log-org {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .log-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .loading-overlay.active {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Footer */
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--divider);
+      background: var(--surface);
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    /* Spinner */
+    .mdl-spinner {
+      width: 36px;
+      height: 36px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 60px;
+      left: 16px;
+      right: 16px;
+      background: #323232;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1001;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar-container">
+    <!-- Header -->
+    <div class="sidebar-header">
+      <h1>CG Accounts</h1>
+      <p>Financial Data Aggregation</p>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-indicator idle" id="statusIndicator"></div>
+      <span class="status-text" id="statusText">Ready</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="sidebar-content">
+      <!-- Quick Actions -->
+      <div class="section">
+        <div class="section-title">Quick Actions</div>
+
+        <button class="action-btn primary" onclick="refreshAll()">
+          <i class="material-icons">sync</i>
+          <div>
+            <div class="btn-text">Refresh All Orgs</div>
+            <div class="btn-subtitle">Update all ledgers</div>
+          </div>
+        </button>
+
+        <select class="org-selector" id="orgSelector">
+          <option value="">Select Organization...</option>
+        </select>
+
+        <button class="action-btn" onclick="refreshSelected()">
+          <i class="material-icons">refresh</i>
+          <div>
+            <div class="btn-text">Refresh Selected</div>
+            <div class="btn-subtitle">Update single org</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Tools -->
+      <div class="section">
+        <div class="section-title">Tools</div>
+
+        <button class="action-btn" onclick="showLogs()">
+          <i class="material-icons">list_alt</i>
+          <div>
+            <div class="btn-text">View Logs</div>
+            <div class="btn-subtitle">Recent run history</div>
+          </div>
+        </button>
+
+        <button class="action-btn" onclick="testConnections()">
+          <i class="material-icons">wifi_tethering</i>
+          <div>
+            <div class="btn-text">Test Connections</div>
+            <div class="btn-subtitle">Verify source sheets</div>
+          </div>
+        </button>
+
+        <button class="action-btn" onclick="openSettings()">
+          <i class="material-icons">settings</i>
+          <div>
+            <div class="btn-text">Settings</div>
+            <div class="btn-subtitle">Configure sources</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="section">
+        <div class="section-title">Last Run Summary</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="statOrgs">-</div>
+            <div class="stat-label">Orgs Updated</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statRows">-</div>
+            <div class="stat-label">Rows Processed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="section">
+        <div class="section-title">Recent Activity</div>
+        <div id="recentLogs">
+          <div class="log-item">
+            <div class="log-status idle"></div>
+            <div class="log-details">
+              <div class="log-org">No recent activity</div>
+              <div class="log-time">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      Classic Group Accounts v0.1.0
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="mdl-spinner mdl-js-spinner is-active"></div>
+    <div class="loading-text" id="loadingText">Processing...</div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // State
+    let orgs = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      loadOrgs();
+      loadRecentLogs();
+    });
+
+    // Load organizations
+    function loadOrgs() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          orgs = result || [];
+          const selector = document.getElementById('orgSelector');
+          selector.innerHTML = '<option value="">Select Organization...</option>';
+          orgs.forEach(function(org) {
+            if (org.active) {
+              selector.innerHTML += '<option value="' + org.code + '">' + org.code + ' - ' + org.name + '</option>';
+            }
+          });
+        })
+        .withFailureHandler(handleError)
+        .getActiveOrgs();
+    }
+
+    // Load recent logs
+    function loadRecentLogs() {
+      google.script.run
+        .withSuccessHandler(function(logs) {
+          renderLogs(logs || []);
+        })
+        .withFailureHandler(handleError)
+        .getRecentLogsForUI();
+    }
+
+    // Render logs
+    function renderLogs(logs) {
+      const container = document.getElementById('recentLogs');
+      if (!logs || logs.length === 0) {
+        container.innerHTML = '<div class="log-item"><div class="log-status idle"></div><div class="log-details"><div class="log-org">No recent activity</div><div class="log-time">-</div></div></div>';
+        return;
+      }
+
+      container.innerHTML = logs.slice(0, 5).map(function(log) {
+        const statusClass = log.status === 'SUCCESS' ? 'success' : (log.status === 'ERROR' ? 'error' : 'warning');
+        const time = new Date(log.timestamp).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
+        return '<div class="log-item"><div class="log-status ' + statusClass + '"></div><div class="log-details"><div class="log-org">' + log.orgCode + ' - ' + log.sourceType + '</div><div class="log-time">' + time + '</div></div></div>';
+      }).join('');
+    }
+
+    // Refresh all orgs
+    function refreshAll() {
+      showLoading('Refreshing all organizations...');
+      setStatus('warning', 'Processing...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.failed && result.failed.length > 0) {
+            setStatus('error', result.failed.length + ' org(s) failed');
+            showToast('Completed with errors. Check logs.');
+          } else {
+            setStatus('success', 'All orgs updated');
+            showToast('All organizations refreshed successfully!');
+          }
+          updateStats(result);
+          loadRecentLogs();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          setStatus('error', 'Refresh failed');
+          handleError(error);
+        })
+        .refreshAllOrgs();
+    }
+
+    // Refresh selected org
+    function refreshSelected() {
+      const orgCode = document.getElementById('orgSelector').value;
+      if (!orgCode) {
+        showToast('Please select an organization');
+        return;
+      }
+
+      showLoading('Refreshing ' + orgCode + '...');
+      setStatus('warning', 'Processing ' + orgCode + '...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          setStatus('success', orgCode + ' updated');
+          showToast(orgCode + ' refreshed successfully!');
+          loadRecentLogs();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          setStatus('error', 'Refresh failed');
+          handleError(error);
+        })
+        .refreshOrg(orgCode);
+    }
+
+    // Test connections
+    function testConnections() {
+      showLoading('Testing connections...');
+      google.script.run
+        .withSuccessHandler(function() {
+          hideLoading();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          handleError(error);
+        })
+        .testConnection();
+    }
+
+    // Show logs
+    function showLogs() {
+      google.script.run.showLogs();
+    }
+
+    // Open settings
+    function openSettings() {
+      google.script.run.showSettings();
+    }
+
+    // UI Helpers
+    function showLoading(text) {
+      document.getElementById('loadingText').textContent = text || 'Processing...';
+      document.getElementById('loadingOverlay').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('active');
+    }
+
+    function setStatus(type, text) {
+      const indicator = document.getElementById('statusIndicator');
+      indicator.className = 'status-indicator ' + type;
+      document.getElementById('statusText').textContent = text;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(function() {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function updateStats(result) {
+      if (result.success) {
+        document.getElementById('statOrgs').textContent = result.success.length;
+        const totalRows = result.success.reduce(function(sum, r) {
+          return sum + (r.purchase?.rows || 0) + (r.sales?.rows || 0) + (r.bank?.rows || 0);
+        }, 0);
+        document.getElementById('statRows').textContent = totalRows;
+      }
+    }
+
+    function handleError(error) {
+      console.error(error);
+      showToast('Error: ' + (error.message || error));
+    }
+  </script>
+</body>
+</html>
