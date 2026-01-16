@@ -71,15 +71,40 @@ Starting the Classic Group Accounts Script project. This will aggregate financia
 
 ## Next Steps
 
-1. Set up package.json with Jest config
-2. Create appsscript.json manifest
-3. Build config module to read ORG_CONFIG and SOURCE_CONFIG
-4. Build logger module
-5. User to provide ledger template sheet for format reference
+1. ~~Set up package.json with Jest config~~ Done
+2. ~~Create appsscript.json manifest~~ Done
+3. ~~Build config module~~ Done
+4. ~~Build logger module~~ Done
+5. ~~User to provide ledger template sheet~~ Done - template received
+
+## Session Update (Later Same Day)
+
+### Architecture Change
+Changed from central control panel to **per-org self-contained sheets**:
+- Each org's Ledger sheet has its own CONFIG tab
+- INIT function creates all tabs automatically (no prompts)
+- Ledger Master = index of all parties with hyperlinks
+- Individual party ledgers named by party code (CG-SUP-0001)
+
+### New Files Created
+- `src/init.js` - Initialization with tab creation
+- `src/ledgers/party-ledger.js` - Party ledger generation with template format
+
+### Party Ledger Format (from user template)
+```
+CUSTOMER LEDGER                    CG-SUP-1001
+PARENT COMPANY NAME
+ADDRESS LINE 1
+...
+DATE | PARTICULARS | VOUCHER TYPE | REF | DEBIT | CREDIT | FILE
+...transactions...
+TOTAL                              ₹ X,XXX | ₹ X,XXX
+CLOSING BALANCE                            | ₹ X,XXX
+```
 
 ## Blockers
 
-- Need ledger template sheet from user to finalize ledger output format
+- None - ready for deployment and testing
 
 ## Notes
 
