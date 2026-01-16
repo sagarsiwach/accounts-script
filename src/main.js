@@ -15,22 +15,114 @@
 
 /**
  * Creates the custom menu when spreadsheet opens
+ * Works for both container-bound and add-on installations
  */
-function onOpen() {
+function onOpen(e) {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu('CG Accounts')
-    .addItem('📊 Open Dashboard', 'showSidebar')
+  const menu = ui.createMenu('CG Accounts')
+    .addItem('Open Dashboard', 'showSidebar')
     .addSeparator()
-    .addSubMenu(ui.createMenu('🔧 Setup')
+    .addSubMenu(ui.createMenu('Setup')
       .addItem('Initialize Sheet', 'initializeSheet')
       .addItem('Test Connection', 'testConnection'))
     .addSeparator()
-    .addItem('🔄 Refresh Data', 'refreshData')
+    .addItem('Refresh Data', 'refreshData')
     .addSeparator()
-    .addSubMenu(ui.createMenu('📋 View')
+    .addSubMenu(ui.createMenu('View')
       .addItem('Run Logs', 'showLogs')
-      .addItem('Config', 'goToConfig'))
-    .addToUi();
+      .addItem('Config', 'goToConfig'));
+
+  menu.addToUi();
+}
+
+/**
+ * Add-on homepage trigger - shows card UI in sidebar
+ * @param {Object} e - Event object
+ * @returns {Card} Card to display
+ */
+function onHomepage(e) {
+  return createHomepageCard();
+}
+
+/**
+ * Creates the homepage card for the add-on
+ * @returns {Card} The card to display
+ */
+function createHomepageCard() {
+  const builder = CardService.newCardBuilder();
+
+  // Header
+  builder.setHeader(
+    CardService.newCardHeader()
+      .setTitle('CG Accounts')
+      .setSubtitle('Financial Data Aggregation')
+      .setImageStyle(CardService.ImageStyle.SQUARE)
+  );
+
+  // Check if sheet is initialized
+  let configStatus = 'Not initialized';
+  let orgCode = '-';
+  try {
+    const config = Init.readConfig();
+    if (config && config.ORG_CODE) {
+      configStatus = 'Configured';
+      orgCode = config.ORG_CODE;
+    }
+  } catch (e) {
+    configStatus = 'Not initialized';
+  }
+
+  // Status Section
+  const statusSection = CardService.newCardSection()
+    .setHeader('Status')
+    .addWidget(
+      CardService.newDecoratedText()
+        .setTopLabel('Organization')
+        .setText(orgCode)
+    )
+    .addWidget(
+      CardService.newDecoratedText()
+        .setTopLabel('Config Status')
+        .setText(configStatus)
+    );
+
+  builder.addSection(statusSection);
+
+  // Actions Section
+  const actionsSection = CardService.newCardSection()
+    .setHeader('Quick Actions')
+    .addWidget(
+      CardService.newTextButton()
+        .setText('Initialize Sheet')
+        .setOnClickAction(
+          CardService.newAction().setFunctionName('initializeSheet')
+        )
+    )
+    .addWidget(
+      CardService.newTextButton()
+        .setText('Refresh Data')
+        .setOnClickAction(
+          CardService.newAction().setFunctionName('refreshData')
+        )
+    )
+    .addWidget(
+      CardService.newTextButton()
+        .setText('Test Connection')
+        .setOnClickAction(
+          CardService.newAction().setFunctionName('testConnection')
+        )
+    )
+    .addWidget(
+      CardService.newTextButton()
+        .setText('Open Full Dashboard')
+        .setOnClickAction(
+          CardService.newAction().setFunctionName('showSidebar')
+        )
+    );
+
+  builder.addSection(actionsSection);
+
+  return builder.build();
 }
 
 /**
