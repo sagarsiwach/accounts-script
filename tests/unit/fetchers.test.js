@@ -29,9 +29,10 @@ global.Utils = {
   parseNumber: (val) => parseFloat(val) || 0
 };
 
-// Load the module
+// Load the module (replace const with global assignment for Jest compatibility)
 const fetchersCode = require('fs').readFileSync('./src/fetchers/index.js', 'utf8');
-eval(fetchersCode);
+eval(fetchersCode.replace('const Fetchers =', 'global.Fetchers ='));
+const Fetchers = global.Fetchers;
 
 describe('Fetchers', () => {
 

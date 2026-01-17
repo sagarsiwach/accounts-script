@@ -24,9 +24,10 @@ global.Utils = {
   }
 };
 
-// Load the module
+// Load the module (replace const with global assignment for Jest compatibility)
 const ledgersCode = require('fs').readFileSync('./src/ledgers/index.js', 'utf8');
-eval(ledgersCode);
+eval(ledgersCode.replace('const Ledgers =', 'global.Ledgers ='));
+const Ledgers = global.Ledgers;
 
 describe('Ledgers', () => {
 

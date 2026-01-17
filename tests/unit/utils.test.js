@@ -14,7 +14,9 @@ global.CacheService = {
 
 // Import the module (we need to handle the IIFE pattern)
 const utilsCode = require('fs').readFileSync('./src/utils.js', 'utf8');
-eval(utilsCode);
+// Execute and assign to global since GAS uses global scope
+eval(utilsCode.replace('const Utils =', 'global.Utils ='));
+const Utils = global.Utils;
 
 describe('Utils', () => {
 
