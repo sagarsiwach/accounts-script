@@ -61,15 +61,14 @@ const Init = (function() {
       sheet.clear();
     }
 
-    // Move to first position
-    ss.setActiveSheet(sheet);
-    ss.moveActiveSheet(1);
+    // CONFIG will be moved to end after all tabs are created
 
     // Section 1: Organization Settings (using >> instead of = to avoid formula error)
     const orgSettings = [
       ['>> ORGANIZATION SETTINGS', '', ''],
       ['ORG_CODE', '', 'CM, KM, DEV, CPI, SM'],
-      ['ORG_NAME', '', 'Full organization name'],
+      ['ORG_NAME', '', 'Full organization name (optional if using COMPANY_CONTACT_ID)'],
+      ['COMPANY_CONTACT_ID', '', 'Contact ID for company info (e.g., CG-MAS-0001)'],
       ['FINANCIAL_YEAR', '2025-26', 'FY for this ledger'],
       ['CONTACTS_SHEET_ID', '1bqjiSyUUdfzV6AXbS13NiqyMlMUzKliXLKcn6zSdPCk', 'Contact Master Sheet ID'],
       ['CONTACTS_SHEET_NAME', 'ALL CONTACTS', 'Tab name for contacts'],
@@ -266,9 +265,9 @@ const Init = (function() {
       sheet.clear();
     }
 
-    // Move to second position
+    // Move to FIRST position (Ledger Master should be first tab)
     ss.setActiveSheet(sheet);
-    ss.moveActiveSheet(2);
+    ss.moveActiveSheet(1);
 
     // Headers
     const headers = [
@@ -597,6 +596,104 @@ const Init = (function() {
     }
   }
 
+  /**
+   * Reorders tabs: Ledger Master first, then ledgers, CONFIG and RUN_LOG at end
+   * @param {Spreadsheet} ss - Active spreadsheet
+   */
+  function reorderTabs(ss) {
+    const sheets = ss.getSheets();
+    const totalSheets = sheets.length;
+
+    // Find CONFIG and RUN_LOG and move to end
+    const configSheet = ss.getSheetByName('CONFIG');
+    const runLogSheet = ss.getSheetByName('RUN_LOG');
+
+    if (runLogSheet) {
+      ss.setActiveSheet(runLogSheet);
+      ss.moveActiveSheet(totalSheets);
+    }
+
+    if (configSheet) {
+      ss.setActiveSheet(configSheet);
+      ss.moveActiveSheet(totalSheets);
+    }
+
+    // Ensure Ledger Master is first
+    const ledgerMaster = ss.getSheetByName('Ledger Master');
+    if (ledgerMaster) {
+      ss.setActiveSheet(ledgerMaster);
+      ss.moveActiveSheet(1);
+    }
+  }
+
+  /**
+   * Fetches company info from contacts sheet using COMPANY_CONTACT_ID
+   * @param {Object} config - Configuration object
+   * @returns {Object} Company info object
+   */
+  function fetchCompanyFromContacts(config) {
+    const company = {
+      id: config.COMPANY_CONTACT_ID || config.ORG_CODE || '',
+      name: config.ORG_NAME || '',
+      address1: '',
+      address2: '',
+      gst: '',
+      phone: '',
+      email: ''
+    };
+
+    // If no COMPANY_CONTACT_ID, return basic info
+    if (!config.COMPANY_CONTACT_ID || !config.CONTACTS_SHEET_ID) {
+      return company;
+    }
+
+    try {
+      const contactsSheet = SpreadsheetApp.openById(config.CONTACTS_SHEET_ID);
+      const tab = contactsSheet.getSheetByName(config.CONTACTS_SHEET_NAME || 'ALL CONTACTS');
+      if (!tab) return company;
+
+      const data = tab.getDataRange().getValues();
+      if (data.length < 2) return company;
+
+      const headers = data[0].map(h => String(h).trim().toUpperCase());
+
+      // Find column indices
+      const colIdx = {
+        sl: headers.indexOf('SL'),
+        company: headers.indexOf('COMPANY NAME'),
+        addr1: headers.indexOf('ADDRESS LINE 1'),
+        addr2: headers.indexOf('ADDRESS LINE 2'),
+        district: headers.indexOf('DISTRICT'),
+        state: headers.indexOf('STATE'),
+        pin: headers.indexOf('PIN CODE'),
+        gst: headers.indexOf('GST'),
+        mobile: headers.indexOf('MOBILE NO'),
+        email: headers.indexOf('EMAIL ID')
+      };
+
+      // Find the company row
+      const companyContactId = String(config.COMPANY_CONTACT_ID).trim().toUpperCase();
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const rowId = String(row[colIdx.sl] || '').trim().toUpperCase();
+
+        if (rowId === companyContactId) {
+          company.name = row[colIdx.company] || company.name;
+          company.address1 = row[colIdx.addr1] || '';
+          company.address2 = [row[colIdx.district], row[colIdx.state], row[colIdx.pin]].filter(x => x).join(', ');
+          company.gst = row[colIdx.gst] || '';
+          company.phone = row[colIdx.mobile] || '';
+          company.email = row[colIdx.email] || '';
+          break;
+        }
+      }
+    } catch (error) {
+      Logger.log('Error fetching company from contacts: ' + error.message);
+    }
+
+    return company;
+  }
+
   // Public API
   return {
     initialize,
@@ -607,7 +704,9 @@ const Init = (function() {
     getBankTabs,
     createConfigTab,
     createLedgerMasterTab,
-    createRunLogTab
+    createRunLogTab,
+    reorderTabs,
+    fetchCompanyFromContacts
   };
 
 })();

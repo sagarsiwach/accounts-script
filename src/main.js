@@ -585,6 +585,9 @@ function generateAllLedgers(ss, config, transactions) {
     // Update Ledger Master index
     PartyLedger.updateLedgerMasterIndex(ss, parties);
 
+    // Reorder tabs: Ledger Master first, ledgers in middle, CONFIG and RUN_LOG at end
+    Init.reorderTabs(ss);
+
     result.status = 'SUCCESS';
 
   } catch (error) {
@@ -740,16 +743,8 @@ function createSingleLedger(partyId) {
   try {
     const config = Init.readConfig();
 
-    // Get company info from config
-    const company = {
-      id: config.ORG_CODE || '',
-      name: config.ORG_NAME || '',
-      address1: '',
-      address2: '',
-      gst: '',
-      phone: '',
-      email: ''
-    };
+    // Get company info from contacts sheet using COMPANY_CONTACT_ID
+    const company = getCompanyFromConfig(config);
 
     // Fetch party info from contacts sheet
     const partyInfo = fetchPartyFromContacts(config, partyId);
@@ -763,6 +758,9 @@ function createSingleLedger(partyId) {
 
     // Create the ledger
     const result = PartyLedger.createPartyLedger(ss, partyInfo, company, transactions);
+
+    // Reorder tabs after creating ledger
+    Init.reorderTabs(ss);
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     ui.alert(
@@ -967,19 +965,13 @@ function fetchBankDataAllTabs(config) {
 
 /**
  * Gets the company object from config for ledger headers
+ * Uses COMPANY_CONTACT_ID to pull from contacts sheet if available
  * @param {Object} config - Configuration object
  * @returns {Object} Company object
  */
 function getCompanyFromConfig(config) {
-  return {
-    id: config.ORG_CODE || '',
-    name: config.ORG_NAME || '',
-    address1: '',
-    address2: '',
-    gst: '',
-    phone: '',
-    email: ''
-  };
+  // Use the Init module's fetchCompanyFromContacts for full contact lookup
+  return Init.fetchCompanyFromContacts(config);
 }
 
 /**

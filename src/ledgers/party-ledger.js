@@ -32,10 +32,10 @@ const PartyLedger = (function() {
     A: 120,
     B: 350,
     C: 120,
-    D: 80,
+    D: 140,  // Increased by 60
     E: 140,
     F: 140,
-    G: 230
+    G: 230   // Hidden column for IDs
   };
 
   /**
@@ -61,6 +61,9 @@ const PartyLedger = (function() {
     // Apply global font
     sheet.getDataRange().setFontFamily('Roboto Condensed');
 
+    // Hide gridlines
+    sheet.setHiddenGridlines(true);
+
     // Set column widths
     sheet.setColumnWidth(1, COL_WIDTHS.A);  // A - Date
     sheet.setColumnWidth(2, COL_WIDTHS.B);  // B - Particulars
@@ -68,7 +71,14 @@ const PartyLedger = (function() {
     sheet.setColumnWidth(4, COL_WIDTHS.D);  // D - Ref
     sheet.setColumnWidth(5, COL_WIDTHS.E);  // E - Debit
     sheet.setColumnWidth(6, COL_WIDTHS.F);  // F - Credit
-    sheet.setColumnWidth(7, COL_WIDTHS.G);  // G - File
+    sheet.setColumnWidth(7, COL_WIDTHS.G);  // G - Hidden ID column
+
+    // Hide column G and delete columns after G
+    sheet.hideColumns(7);
+    const maxCols = sheet.getMaxColumns();
+    if (maxCols > 7) {
+      sheet.deleteColumns(8, maxCols - 7);
+    }
 
     // === ROW 1: Header with ledger type and IDs ===
     writeRow1Header(sheet, party, company);
@@ -106,8 +116,8 @@ const PartyLedger = (function() {
   /**
    * Row 1: Ledger type label + Contact ID + Company ID
    * A1:E1 merged, light gray text, 10px
-   * F1: Party contact ID
-   * G1: Company contact ID
+   * F1: Party contact ID (light gray)
+   * G1: Company contact ID (light gray)
    */
   function writeRow1Header(sheet, party, company) {
     sheet.setRowHeight(1, 30);
@@ -129,17 +139,19 @@ const PartyLedger = (function() {
       .setFontColor('#999999')
       .setVerticalAlignment('middle');
 
-    // F1 - Party ID
+    // F1 - Party ID (light gray)
     sheet.getRange('F1')
       .setValue(party.id || '')
       .setFontSize(10)
+      .setFontColor('#999999')
       .setHorizontalAlignment('right')
       .setVerticalAlignment('middle');
 
-    // G1 - Company ID
+    // G1 - Company ID (light gray)
     sheet.getRange('G1')
       .setValue(company.id || '')
       .setFontSize(10)
+      .setFontColor('#999999')
       .setHorizontalAlignment('right')
       .setVerticalAlignment('middle');
   }
@@ -148,11 +160,12 @@ const PartyLedger = (function() {
    * Rows 2-5: Company details (the org running the ledger)
    */
   function writeCompanyDetails(sheet, company) {
-    // Row 2: Company Name - 16px, center, 30px height
+    // Row 2: Company Name - 16px, center, 30px height, UPPERCASE, BOLD
     sheet.setRowHeight(2, 30);
     sheet.getRange('A2:F2').merge()
-      .setValue(company.name || '')
+      .setValue((company.name || '').toUpperCase())
       .setFontSize(16)
+      .setFontWeight('bold')
       .setHorizontalAlignment('center')
       .setVerticalAlignment('middle');
 
@@ -186,11 +199,12 @@ const PartyLedger = (function() {
    * Rows 7-10: Party details (supplier/customer whose ledger this is)
    */
   function writePartyDetails(sheet, party) {
-    // Row 7: Party Name - 16px, center, 30px height
+    // Row 7: Party Name - 16px, center, 30px height, UPPERCASE, BOLD
     sheet.setRowHeight(7, 30);
     sheet.getRange('A7:F7').merge()
-      .setValue(party.name || '')
+      .setValue((party.name || '').toUpperCase())
       .setFontSize(16)
+      .setFontWeight('bold')
       .setHorizontalAlignment('center')
       .setVerticalAlignment('middle');
 
