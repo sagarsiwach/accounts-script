@@ -1,13 +1,17 @@
 /**
- * Fetchers Module
- * Data fetching from source sheets (Purchase, Sales, Bank)
+ * Fetchers Module (LEGACY - DEPRECATED)
  *
- * @fileoverview Source data fetchers for CG Accounts
+ * @deprecated This module is deprecated. Use fetchSourceData() and fetchBankDataAllTabs() in main.js instead.
+ * This was designed for a centralized control sheet architecture.
+ * Current architecture (v0.4.0+) uses per-sheet CONFIG with direct fetching in main.js
+ *
+ * @fileoverview Legacy data fetchers - DO NOT USE
  */
 
 const Fetchers = (function() {
 
   /**
+   * @deprecated Use fetchSourceData() in main.js
    * Fetches purchase data for an organization
    * @param {string} orgCode - Organization code
    * @returns {Object} Result with data array and metadata
@@ -17,6 +21,7 @@ const Fetchers = (function() {
   }
 
   /**
+   * @deprecated Use fetchSourceData() in main.js
    * Fetches sales data for an organization
    * @param {string} orgCode - Organization code
    * @returns {Object} Result with data array and metadata

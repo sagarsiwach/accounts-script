@@ -65,91 +65,140 @@ const Init = (function() {
     ss.setActiveSheet(sheet);
     ss.moveActiveSheet(1);
 
-    // Section 1: Organization Settings
+    // Section 1: Organization Settings (using >> instead of = to avoid formula error)
     const orgSettings = [
-      ['=== ORGANIZATION SETTINGS ===', '', ''],
+      ['>> ORGANIZATION SETTINGS', '', ''],
       ['ORG_CODE', '', 'CM, KM, DEV, CPI, SM'],
       ['ORG_NAME', '', 'Full organization name'],
       ['FINANCIAL_YEAR', '2025-26', 'FY for this ledger'],
+      ['CONTACTS_SHEET_ID', '1bqjiSyUUdfzV6AXbS13NiqyMlMUzKliXLKcn6zSdPCk', 'Contact Master Sheet ID'],
+      ['CONTACTS_SHEET_NAME', 'ALL CONTACTS', 'Tab name for contacts'],
       ['', '', ''],
     ];
 
     // Section 2: Source Sheet IDs
     const sourceSettings = [
-      ['=== SOURCE SHEETS ===', '', ''],
+      ['>> SOURCE SHEETS', '', ''],
       ['PURCHASE_SHEET_ID', '', 'Google Sheet ID for Purchase Register'],
       ['PURCHASE_SHEET_NAME', 'Purchase Register', 'Tab name in the sheet'],
       ['SALES_SHEET_ID', '', 'Google Sheet ID for Sales Register'],
       ['SALES_SHEET_NAME', 'Sales Register', 'Tab name in the sheet'],
-      ['BANK_SHEET_ID', '', 'Google Sheet ID for Bank Statement'],
-      ['BANK_SHEET_NAME', 'Bank Statement', 'Tab name in the sheet'],
-      ['SUPPLIER_MASTER_ID', '', 'Google Sheet ID for Supplier Master'],
-      ['SUPPLIER_MASTER_NAME', 'Supplier Master', 'Tab name'],
-      ['CUSTOMER_MASTER_ID', '', 'Google Sheet ID for Customer Master'],
-      ['CUSTOMER_MASTER_NAME', 'Customer Master', 'Tab name'],
+      ['BANK_SHEET_ID', '', 'Google Sheet ID for Bank workbook (all tabs scanned)'],
       ['', '', ''],
     ];
 
-    // Section 3: Column Mappings - Purchase
+    // Section 3: Column Mappings - Purchase (prefilled with actual schema)
     const purchaseMapping = [
-      ['=== PURCHASE COLUMN MAPPING ===', '', ''],
-      ['PUR_DATE_COL', 'INW_DATE', 'Date column'],
-      ['PUR_PARTY_ID_COL', 'L/F', 'Party ID column'],
-      ['PUR_PARTY_NAME_COL', 'SUPPLIER_NAME', 'Party name column'],
-      ['PUR_INVOICE_COL', 'INVOICE_NO', 'Invoice number column'],
-      ['PUR_AMOUNT_COL', 'GRAND_TOTAL', 'Total amount column'],
-      ['PUR_GST_COL', 'GST_TOTAL', 'GST total column'],
-      ['PUR_IGST_COL', 'IGST', 'IGST column'],
-      ['PUR_CGST_COL', 'CGST', 'CGST column'],
-      ['PUR_SGST_COL', 'SGST', 'SGST column'],
-      ['PUR_REMARKS_COL', 'REMARKS', 'Remarks column'],
+      ['>> PURCHASE COLUMN MAPPING', '', ''],
+      ['PUR_LF_COL', 'L/F', 'Ledger folio / Party ID'],
+      ['PUR_SUPPLIER_REF_COL', 'SUPPLIER REF', 'Supplier reference'],
+      ['PUR_INWARD_NO_COL', 'INWARD NO.', 'Inward number'],
+      ['PUR_INWARD_DATE_COL', 'INW DATE', 'Inward date'],
+      ['PUR_INVOICE_NO_COL', 'INVOICE NO.', 'Invoice number'],
+      ['PUR_INVOICE_DATE_COL', 'INVOICE DATE', 'Invoice date'],
+      ['PUR_ACCOUNT_COL', 'ACCOUNT', 'Account'],
+      ['PUR_SUPPLIER_NAME_COL', 'SUPPLIER NAME', 'Supplier name'],
+      ['PUR_GST_NUMBER_COL', 'GST NUMBER', 'GST number'],
+      ['PUR_HSN_CODE_COL', 'HSN CODE', 'HSN code'],
+      ['PUR_ASS_VALUE_COL', 'ASS. VALUE', 'Assessable value'],
+      ['PUR_IGST_COL', 'IGST', 'IGST amount'],
+      ['PUR_CGST_COL', 'CGST', 'CGST amount'],
+      ['PUR_SGST_COL', 'SGST', 'SGST amount'],
+      ['PUR_OTHER_CHARGES_COL', 'OTHER CHARGES', 'Other charges'],
+      ['PUR_GST_TOTAL_COL', 'GST TOTAL', 'GST total'],
+      ['PUR_GRAND_TOTAL_COL', 'GRAND TOTAL', 'Grand total'],
+      ['PUR_PURCHASE_YTD_COL', 'PURCHASE (YTD)', 'Purchase year to date'],
+      ['PUR_GST_YTD_COL', 'GST (YTD)', 'GST year to date'],
+      ['PUR_INVOICE_LINK_COL', 'INVOICE', 'Invoice file link'],
+      ['PUR_GRN_LINK_COL', 'GRN', 'GRN file link'],
+      ['PUR_PO_LINK_COL', 'PO', 'PO file link'],
+      ['PUR_GST_TYPE_COL', 'GST TYPE', 'GST type'],
+      ['PUR_TIN_COL', 'TIN', 'TIN'],
+      ['PUR_GIN_COL', 'GIN', 'GIN'],
+      ['PUR_GRN_NO_COL', 'GRN', 'GRN number'],
+      ['PUR_SIN_COL', 'SIN', 'SIN'],
+      ['PUR_REMARKS_COL', 'REMARKS', 'Remarks'],
+      ['PUR_GST_REMARKS_COL', 'GST REMARKS', 'GST remarks'],
+      ['PUR_GST_MONTH_COL', 'GST MONTH', 'GST month'],
+      ['PUR_EXPENSE_COL', 'EXPENSE?', 'Is expense flag'],
       ['', '', ''],
     ];
 
-    // Section 4: Column Mappings - Sales
+    // Section 4: Column Mappings - Sales (prefilled with actual schema)
     const salesMapping = [
-      ['=== SALES COLUMN MAPPING ===', '', ''],
-      ['SAL_DATE_COL', 'INVOICE_DATE', 'Date column'],
-      ['SAL_PARTY_ID_COL', 'L/F', 'Party ID column'],
-      ['SAL_PARTY_NAME_COL', 'PARTY_NAME', 'Party name column'],
-      ['SAL_INVOICE_COL', 'INVOICE_NO', 'Invoice number column'],
-      ['SAL_AMOUNT_COL', 'GRAND_TOTAL', 'Total amount column'],
-      ['SAL_GST_COL', 'GST_TOTAL', 'GST total column'],
-      ['SAL_REMARKS_COL', 'REMARKS', 'Remarks column'],
+      ['>> SALES COLUMN MAPPING', '', ''],
+      ['SAL_LF_COL', 'L/F', 'Ledger folio / Party ID'],
+      ['SAL_CUSTOMER_NAME_COL', 'CUSTOMER NAME', 'Customer name'],
+      ['SAL_INVOICE_NO_COL', 'INVOICE NO.', 'Invoice number'],
+      ['SAL_INVOICE_DATE_COL', 'INVOICE DATE', 'Invoice date'],
+      ['SAL_TYPE_COL', 'TYPE', 'Sale type'],
+      ['SAL_BILL_TO_COL', 'BILL TO', 'Bill to'],
+      ['SAL_BILLING_GST_COL', 'BILLING GST', 'Billing GST'],
+      ['SAL_EWAY_BILL_COL', 'E-WAY BILL NUMBER', 'E-way bill number'],
+      ['SAL_ASS_VALUE_COL', 'ASS. VALUE', 'Assessable value'],
+      ['SAL_IGST_COL', 'IGST', 'IGST amount'],
+      ['SAL_CGST_COL', 'CGST', 'CGST amount'],
+      ['SAL_SGST_COL', 'SGST', 'SGST amount'],
+      ['SAL_OTHER_CHARGES_COL', 'OTHER CHARGES', 'Other charges'],
+      ['SAL_GST_TOTAL_COL', 'GST TOTAL', 'GST total'],
+      ['SAL_GRAND_TOTAL_COL', 'GRAND TOTAL', 'Grand total'],
+      ['SAL_SALE_YTD_COL', 'P. SALE (YEARLY)', 'Previous sale yearly'],
+      ['SAL_GST_YTD_COL', 'P. GST (YEARLY)', 'Previous GST yearly'],
+      ['SAL_VEH_NO_COL', 'VEH. NO', 'Vehicle number'],
+      ['SAL_LR_NO_COL', 'LR NO.', 'LR number'],
+      ['SAL_SRQ_COL', 'SRQ', 'SRQ'],
+      ['SAL_INVOICE_LINK_COL', 'INVOICE', 'Invoice file link'],
+      ['SAL_LR_COPY_LINK_COL', 'LR COPY', 'LR copy link'],
+      ['SAL_GST_TYPE_COL', 'GST TYPE', 'GST type'],
+      ['SAL_GST_MONTH_COL', 'GST MONTH', 'GST month'],
+      ['SAL_REMARKS_COL', 'REMARKS', 'Remarks'],
+      ['SAL_GST_REMARKS_COL', 'GST REMARKS', 'GST remarks'],
       ['', '', ''],
     ];
 
-    // Section 5: Column Mappings - Bank
+    // Section 5: Column Mappings - Bank (prefilled with actual schema)
     const bankMapping = [
-      ['=== BANK COLUMN MAPPING ===', '', ''],
-      ['BANK_DATE_COL', 'DATE', 'Date column'],
-      ['BANK_PARTY_ID_COL', 'L/F', 'Party ID column'],
-      ['BANK_PARTY_NAME_COL', 'PARTY NAME', 'Party name column'],
-      ['BANK_DEBIT_COL', 'DEBIT', 'Debit column'],
-      ['BANK_CREDIT_COL', 'CREDIT', 'Credit column'],
-      ['BANK_PARTICULARS_COL', 'PARTICULARS', 'Particulars column'],
-      ['BANK_REF_COL', 'REFERENCE', 'Reference column'],
-      ['BANK_VOUCHER_COL', 'VOUCHER TYPE', 'Voucher type column'],
+      ['>> BANK COLUMN MAPPING', '', ''],
+      ['BANK_DATE_COL', 'DATE', 'Transaction date'],
+      ['BANK_PARTICULARS_COL', 'PARTICULARS', 'Particulars'],
+      ['BANK_DEBIT_COL', 'DEBIT', 'Debit amount'],
+      ['BANK_CREDIT_COL', 'CREDIT', 'Credit amount'],
+      ['BANK_BALANCE_COL', 'BALANCE', 'Running balance'],
+      ['BANK_LF_COL', 'L/F', 'Ledger folio / Party ID'],
+      ['BANK_PARTY_NAME_COL', 'PARTY NAME', 'Party name'],
+      ['BANK_PARTY_TYPE_COL', 'PARTY TYPE', 'Party type'],
+      ['BANK_VOUCHER_TYPE_COL', 'VOUCHER TYPE', 'Voucher type'],
+      ['BANK_REFERENCE_COL', 'REFERENCE', 'Reference'],
+      ['BANK_ACCOUNT_ID_COL', 'ACCOUNT_ID', 'Account ID'],
+      ['BANK_RECONCILED_COL', 'RECONCILED', 'Reconciliation status'],
+      ['BANK_REMARKS_COL', 'REMARKS', 'Remarks'],
       ['', '', ''],
     ];
 
-    // Section 6: Notification Settings
+    // Section 6: Contact Master Schema Reference
+    const contactSchema = [
+      ['>> CONTACT MASTER SCHEMA', '', ''],
+      ['CONTACT_SL_COL', 'SL', 'Serial / Contact ID (CG-SUP-0001, CG-CUS-0001, etc.)'],
+      ['CONTACT_TYPE_COL', 'CONTACT TYPE', 'SUPPLIER, CUSTOMER, MASTER, DEALER, CONTRACTOR, RENTAL'],
+      ['CONTACT_COMPANY_COL', 'COMPANY NAME', 'Company name'],
+      ['CONTACT_ADDR1_COL', 'ADDRESS LINE 1', 'Address line 1'],
+      ['CONTACT_ADDR2_COL', 'ADDRESS LINE 2', 'Address line 2'],
+      ['CONTACT_DISTRICT_COL', 'DISTRICT', 'District'],
+      ['CONTACT_STATE_COL', 'STATE', 'State'],
+      ['CONTACT_PIN_COL', 'PIN CODE', 'PIN code'],
+      ['CONTACT_GST_COL', 'GST', 'GST number'],
+      ['CONTACT_RELATED_COL', 'RELATED COMPANY', 'Related / Parent company'],
+      ['CONTACT_PERSON_COL', 'CONTACT PERSON', 'Contact person name'],
+      ['CONTACT_MOBILE_COL', 'MOBILE NO', 'Mobile number'],
+      ['CONTACT_EMAIL_COL', 'EMAIL ID', 'Email ID'],
+      ['', '', ''],
+    ];
+
+    // Section 7: Notification Settings
     const notificationSettings = [
-      ['=== NOTIFICATIONS ===', '', ''],
+      ['>> NOTIFICATIONS', '', ''],
       ['ERROR_EMAIL', '', 'Email for error notifications'],
       ['LOG_RETENTION_DAYS', '30', 'Days to keep run logs'],
-      ['', '', ''],
-    ];
-
-    // Section 7: Party Master Fields (for ledger header)
-    const partyFields = [
-      ['=== PARTY MASTER FIELDS ===', '', ''],
-      ['PARTY_PARENT_COL', 'PARENT_COMPANY', 'Parent company column'],
-      ['PARTY_ADDRESS1_COL', 'ADDRESS_LINE_1', 'Address line 1'],
-      ['PARTY_ADDRESS2_COL', 'ADDRESS_LINE_2', 'Address line 2'],
-      ['PARTY_CONTACT_COL', 'CONTACT', 'Contact info column'],
-      ['PARTY_GST_COL', 'GST_NUMBER', 'GST number column'],
-      ['PARTY_EMAIL_COL', 'EMAIL', 'Email column'],
     ];
 
     // Combine all sections
@@ -160,24 +209,34 @@ const Init = (function() {
       ...purchaseMapping,
       ...salesMapping,
       ...bankMapping,
-      ...notificationSettings,
-      ...partyFields
+      ...contactSchema,
+      ...notificationSettings
     ];
 
     // Write to sheet
     const range = sheet.getRange(1, 1, allData.length, 3);
     range.setValues(allData);
 
-    // Format header
+    // Apply Roboto Condensed font to entire sheet
+    sheet.getDataRange().setFontFamily('Roboto Condensed').setFontSize(8);
+
+    // Set all rows to 20px height
+    for (let i = 1; i <= allData.length; i++) {
+      sheet.setRowHeight(i, 20);
+    }
+
+    // Format header row
     sheet.getRange(1, 1, 1, 3)
       .setFontWeight('bold')
       .setBackground('#4a86e8')
-      .setFontColor('white');
+      .setFontColor('white')
+      .setFontSize(9);
+    sheet.setRowHeight(1, 24);
 
-    // Format section headers
+    // Format section headers (using >> prefix now)
     const data = sheet.getDataRange().getValues();
     for (let i = 0; i < data.length; i++) {
-      if (String(data[i][0]).startsWith('===')) {
+      if (String(data[i][0]).startsWith('>>')) {
         sheet.getRange(i + 1, 1, 1, 3)
           .setFontWeight('bold')
           .setBackground('#d9ead3')
@@ -308,7 +367,7 @@ const Init = (function() {
       const key = String(data[i][0]).trim();
       const value = data[i][1];
 
-      if (key && !key.startsWith('===')) {
+      if (key && !key.startsWith('>>') && !key.startsWith('===')) {
         config[key] = value;
       }
     }
@@ -352,40 +411,111 @@ const Init = (function() {
     const ui = SpreadsheetApp.getUi();
     const results = [];
 
+    // Bank schema headers to detect (row 5)
+    const BANK_SCHEMA_HEADERS = ['DATE', 'PARTICULARS', 'DEBIT', 'CREDIT', 'BALANCE', 'L/F'];
+
     try {
       const config = readConfig();
 
-      // Test each source
-      const sources = [
-        { name: 'Purchase', idKey: 'PURCHASE_SHEET_ID', nameKey: 'PURCHASE_SHEET_NAME' },
-        { name: 'Sales', idKey: 'SALES_SHEET_ID', nameKey: 'SALES_SHEET_NAME' },
-        { name: 'Bank', idKey: 'BANK_SHEET_ID', nameKey: 'BANK_SHEET_NAME' },
-        { name: 'Supplier Master', idKey: 'SUPPLIER_MASTER_ID', nameKey: 'SUPPLIER_MASTER_NAME' },
-        { name: 'Customer Master', idKey: 'CUSTOMER_MASTER_ID', nameKey: 'CUSTOMER_MASTER_NAME' }
-      ];
-
-      for (const source of sources) {
-        const sheetId = config[source.idKey];
-        const sheetName = config[source.nameKey];
-
-        if (!sheetId) {
-          results.push({ name: source.name, status: 'SKIPPED', message: 'Not configured' });
-          continue;
-        }
-
+      // Test Purchase
+      if (config.PURCHASE_SHEET_ID) {
         try {
-          const sourceSheet = SpreadsheetApp.openById(sheetId);
-          const tab = sourceSheet.getSheetByName(sheetName);
-
+          const sourceSheet = SpreadsheetApp.openById(config.PURCHASE_SHEET_ID);
+          const tab = sourceSheet.getSheetByName(config.PURCHASE_SHEET_NAME || 'Purchase Register');
           if (tab) {
             const rowCount = tab.getLastRow();
-            results.push({ name: source.name, status: 'OK', message: rowCount + ' rows' });
+            results.push({ name: 'Purchase', status: 'OK', message: rowCount + ' rows' });
           } else {
-            results.push({ name: source.name, status: 'ERROR', message: 'Tab "' + sheetName + '" not found' });
+            results.push({ name: 'Purchase', status: 'ERROR', message: 'Tab "' + (config.PURCHASE_SHEET_NAME || 'Purchase Register') + '" not found' });
           }
         } catch (e) {
-          results.push({ name: source.name, status: 'ERROR', message: e.message });
+          results.push({ name: 'Purchase', status: 'ERROR', message: e.message });
         }
+      } else {
+        results.push({ name: 'Purchase', status: 'SKIPPED', message: 'Not configured' });
+      }
+
+      // Test Sales
+      if (config.SALES_SHEET_ID) {
+        try {
+          const sourceSheet = SpreadsheetApp.openById(config.SALES_SHEET_ID);
+          const tab = sourceSheet.getSheetByName(config.SALES_SHEET_NAME || 'Sales Register');
+          if (tab) {
+            const rowCount = tab.getLastRow();
+            results.push({ name: 'Sales', status: 'OK', message: rowCount + ' rows' });
+          } else {
+            results.push({ name: 'Sales', status: 'ERROR', message: 'Tab "' + (config.SALES_SHEET_NAME || 'Sales Register') + '" not found' });
+          }
+        } catch (e) {
+          results.push({ name: 'Sales', status: 'ERROR', message: e.message });
+        }
+      } else {
+        results.push({ name: 'Sales', status: 'SKIPPED', message: 'Not configured' });
+      }
+
+      // Test Bank - scan ALL tabs for bank schema in row 5
+      if (config.BANK_SHEET_ID) {
+        try {
+          const bankWorkbook = SpreadsheetApp.openById(config.BANK_SHEET_ID);
+          const allSheets = bankWorkbook.getSheets();
+          const bankTabs = [];
+          let totalRows = 0;
+
+          for (const sheet of allSheets) {
+            try {
+              // Check row 5 for bank schema headers
+              const row5 = sheet.getRange(5, 1, 1, 6).getValues()[0];
+              const headers = row5.map(h => String(h).trim().toUpperCase());
+
+              // Check if first 6 columns match bank schema
+              const matches = BANK_SCHEMA_HEADERS.every((h, i) => headers[i] === h);
+
+              if (matches) {
+                const rowCount = sheet.getLastRow() - 5; // Rows after header
+                bankTabs.push(sheet.getName());
+                totalRows += rowCount;
+              }
+            } catch (e) {
+              // Skip sheets that can't be read
+            }
+          }
+
+          if (bankTabs.length > 0) {
+            results.push({
+              name: 'Bank',
+              status: 'OK',
+              message: bankTabs.length + ' bank tabs found: ' + bankTabs.join(', ') + ' (' + totalRows + ' rows total)'
+            });
+          } else {
+            results.push({
+              name: 'Bank',
+              status: 'ERROR',
+              message: 'No tabs with bank schema in row 5. Expected: DATE, PARTICULARS, DEBIT, CREDIT, BALANCE, L/F'
+            });
+          }
+        } catch (e) {
+          results.push({ name: 'Bank', status: 'ERROR', message: e.message });
+        }
+      } else {
+        results.push({ name: 'Bank', status: 'SKIPPED', message: 'Not configured' });
+      }
+
+      // Test Contacts
+      if (config.CONTACTS_SHEET_ID) {
+        try {
+          const contactsSheet = SpreadsheetApp.openById(config.CONTACTS_SHEET_ID);
+          const tab = contactsSheet.getSheetByName(config.CONTACTS_SHEET_NAME || 'ALL CONTACTS');
+          if (tab) {
+            const rowCount = tab.getLastRow();
+            results.push({ name: 'Contacts', status: 'OK', message: rowCount + ' contacts' });
+          } else {
+            results.push({ name: 'Contacts', status: 'ERROR', message: 'Tab "' + (config.CONTACTS_SHEET_NAME || 'ALL CONTACTS') + '" not found' });
+          }
+        } catch (e) {
+          results.push({ name: 'Contacts', status: 'ERROR', message: e.message });
+        }
+      } else {
+        results.push({ name: 'Contacts', status: 'SKIPPED', message: 'Not configured' });
       }
 
       // Show results
@@ -404,6 +534,41 @@ const Init = (function() {
     } catch (error) {
       ui.alert('Test Failed', error.message, ui.ButtonSet.OK);
     }
+  }
+
+  /**
+   * Gets all bank tabs from the configured bank sheet
+   * Returns array of {name, sheet} objects for tabs matching bank schema
+   */
+  function getBankTabs() {
+    const config = readConfig();
+    const BANK_SCHEMA_HEADERS = ['DATE', 'PARTICULARS', 'DEBIT', 'CREDIT', 'BALANCE', 'L/F'];
+    const bankTabs = [];
+
+    if (!config.BANK_SHEET_ID) return bankTabs;
+
+    try {
+      const bankWorkbook = SpreadsheetApp.openById(config.BANK_SHEET_ID);
+      const allSheets = bankWorkbook.getSheets();
+
+      for (const sheet of allSheets) {
+        try {
+          const row5 = sheet.getRange(5, 1, 1, 6).getValues()[0];
+          const headers = row5.map(h => String(h).trim().toUpperCase());
+          const matches = BANK_SCHEMA_HEADERS.every((h, i) => headers[i] === h);
+
+          if (matches) {
+            bankTabs.push({ name: sheet.getName(), sheet: sheet });
+          }
+        } catch (e) {
+          // Skip
+        }
+      }
+    } catch (e) {
+      Logger.log('Error getting bank tabs: ' + e.message);
+    }
+
+    return bankTabs;
   }
 
   /**
@@ -439,6 +604,7 @@ const Init = (function() {
     validateConfig,
     testConnection,
     logRun,
+    getBankTabs,
     createConfigTab,
     createLedgerMasterTab,
     createRunLogTab

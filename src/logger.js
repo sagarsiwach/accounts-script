@@ -1,8 +1,11 @@
 /**
- * Logger Module
- * Handles run logging, error tracking, and email notifications
+ * Logger Module (LEGACY - DEPRECATED)
  *
- * @fileoverview Logging and notification system for CG Accounts
+ * @deprecated This module is deprecated. Use Init.logRun() instead.
+ * This was designed for a centralized control sheet architecture.
+ * Current architecture (v0.4.0+) uses per-sheet RUN_LOG tabs managed by init.js
+ *
+ * @fileoverview Legacy logging system - DO NOT USE
  */
 
 const AppLogger = (function() {

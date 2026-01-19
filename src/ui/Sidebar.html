@@ -370,6 +370,27 @@
         </button>
       </div>
 
+      <!-- Ledgers -->
+      <div class="section">
+        <div class="section-title">Ledger Management</div>
+
+        <button class="action-btn primary" onclick="createAllLedgers()">
+          <i class="material-icons">library_books</i>
+          <div>
+            <div class="btn-text">Create All Ledgers</div>
+            <div class="btn-subtitle">Generate for all parties</div>
+          </div>
+        </button>
+
+        <button class="action-btn" onclick="createSingleLedger()">
+          <i class="material-icons">person</i>
+          <div>
+            <div class="btn-text">Create Single Ledger</div>
+            <div class="btn-subtitle">Enter party ID</div>
+          </div>
+        </button>
+      </div>
+
       <!-- Stats -->
       <div class="section">
         <div class="section-title">Last Run Summary</div>
@@ -402,7 +423,7 @@
 
     <!-- Footer -->
     <div class="sidebar-footer">
-      Classic Group Accounts v0.1.0
+      Classic Group Accounts v0.4.0
     </div>
   </div>
 
@@ -541,6 +562,51 @@
     // Open settings
     function openSettings() {
       google.script.run.showSettings();
+    }
+
+    // Create all ledgers
+    function createAllLedgers() {
+      showLoading('Creating all ledgers...');
+      setStatus('warning', 'Generating ledgers...');
+
+      google.script.run
+        .withSuccessHandler(function() {
+          hideLoading();
+          setStatus('success', 'Ledgers created');
+          showToast('All ledgers created successfully!');
+          loadRecentLogs();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          setStatus('error', 'Ledger creation failed');
+          handleError(error);
+        })
+        .createAllLedgers();
+    }
+
+    // Create single ledger
+    function createSingleLedger() {
+      const partyId = prompt('Enter Party ID (e.g., CG-SUP-0001):');
+      if (!partyId || !partyId.trim()) {
+        return;
+      }
+
+      showLoading('Creating ledger for ' + partyId + '...');
+      setStatus('warning', 'Generating ledger...');
+
+      google.script.run
+        .withSuccessHandler(function() {
+          hideLoading();
+          setStatus('success', 'Ledger created');
+          showToast('Ledger for ' + partyId + ' created!');
+          loadRecentLogs();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          setStatus('error', 'Ledger creation failed');
+          handleError(error);
+        })
+        .createSingleLedger(partyId.trim().toUpperCase());
     }
 
     // UI Helpers

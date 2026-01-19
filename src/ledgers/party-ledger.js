@@ -2,19 +2,51 @@
  * Party Ledger Module
  * Creates individual party ledger sheets with proper formatting
  *
- * @fileoverview Party ledger generation matching the template format
+ * @fileoverview Party ledger generation matching the exact template format
+ *
+ * LEDGER LAYOUT:
+ * Row 1: Ledger type (A1:E1 merged) + Contact ID (F1) + Company ID (G1)
+ * Row 2: Company Name (A2:F2 merged, 16px, center)
+ * Row 3: Company Address Line 1 (A3:F3 merged, 10px, center)
+ * Row 4: Company Address Line 2 (A4:F4 merged, 10px, center)
+ * Row 5: GST | Phone | Email (A5:F5 merged, 10px, center)
+ * Row 6: Empty (20px)
+ * Row 7: Party Name (A7:F7 merged, 16px, center)
+ * Row 8: Party Address Line 1 (A8:F8 merged, 10px, center)
+ * Row 9: Party Address Line 2 (A9:F9 merged, 10px, center)
+ * Row 10: GST | Phone | Email (A10:F10 merged, 10px, center)
+ * Row 11: Empty
+ * Row 12: Section header (merged, 12px, 30px, top/bottom border)
+ * Row 13: Legend - DATE, PARTICULARS, VOUCHER TYPE, REF, DEBIT, CREDIT, FILE
+ * Row 14+: Transactions (min 10 rows)
+ * After transactions: 2 row gap, TOTAL, CLOSING BALANCE, GRAND TOTAL
  */
 
 const PartyLedger = (function() {
+
+  // Currency format for Indian Rupees
+  const CURRENCY_FORMAT = '_("₹"* #,##0.00_);_("₹"* \\(#,##0.00\\);_("₹"* "-"??_);_(@_)';
+
+  // Column widths as specified
+  const COL_WIDTHS = {
+    A: 120,
+    B: 350,
+    C: 120,
+    D: 80,
+    E: 140,
+    F: 140,
+    G: 230
+  };
 
   /**
    * Creates or updates a party ledger sheet
    * @param {Spreadsheet} ss - Active spreadsheet
    * @param {Object} party - Party data object
+   * @param {Object} company - Company data object (the org whose ledger this is)
    * @param {Array} transactions - Array of transaction objects
    * @returns {Object} Result with sheet name and row count
    */
-  function createPartyLedger(ss, party, transactions) {
+  function createPartyLedger(ss, party, company, transactions) {
     const sheetName = sanitizeSheetName(party.id);
     let sheet = ss.getSheetByName(sheetName);
 
@@ -23,25 +55,47 @@ const PartyLedger = (function() {
       sheet = ss.insertSheet(sheetName);
     } else {
       sheet.clear();
+      sheet.clearFormats();
     }
 
-    // Build the ledger
-    let currentRow = 1;
+    // Apply global font
+    sheet.getDataRange().setFontFamily('Roboto Condensed');
 
-    // === HEADER SECTION ===
-    currentRow = writeHeader(sheet, party, currentRow);
+    // Set column widths
+    sheet.setColumnWidth(1, COL_WIDTHS.A);  // A - Date
+    sheet.setColumnWidth(2, COL_WIDTHS.B);  // B - Particulars
+    sheet.setColumnWidth(3, COL_WIDTHS.C);  // C - Voucher Type
+    sheet.setColumnWidth(4, COL_WIDTHS.D);  // D - Ref
+    sheet.setColumnWidth(5, COL_WIDTHS.E);  // E - Debit
+    sheet.setColumnWidth(6, COL_WIDTHS.F);  // F - Credit
+    sheet.setColumnWidth(7, COL_WIDTHS.G);  // G - File
 
-    // === PARTY DETAILS SECTION ===
-    currentRow = writePartyDetails(sheet, party, currentRow);
+    // === ROW 1: Header with ledger type and IDs ===
+    writeRow1Header(sheet, party, company);
 
-    // === TRANSACTION TABLE ===
-    currentRow = writeTransactionTable(sheet, transactions, currentRow);
+    // === ROWS 2-5: Company Details ===
+    writeCompanyDetails(sheet, company);
 
-    // === TOTALS AND CLOSING BALANCE ===
-    currentRow = writeTotals(sheet, transactions, currentRow);
+    // === ROW 6: Empty spacer ===
+    sheet.setRowHeight(6, 20);
 
-    // Apply styling
-    applyLedgerStyling(sheet);
+    // === ROWS 7-10: Party Details ===
+    writePartyDetails(sheet, party);
+
+    // === ROW 11: Empty ===
+    sheet.setRowHeight(11, 20);
+
+    // === ROW 12: Section header ===
+    writeRow12SectionHeader(sheet, party);
+
+    // === ROW 13: Legend ===
+    writeRow13Legend(sheet);
+
+    // === ROW 14+: Transactions ===
+    const transactionEndRow = writeTransactions(sheet, transactions);
+
+    // === TOTALS SECTION ===
+    writeTotalsSection(sheet, transactions, transactionEndRow);
 
     return {
       sheetName: sheetName,
@@ -50,105 +104,217 @@ const PartyLedger = (function() {
   }
 
   /**
-   * Writes the ledger header (type + code)
+   * Row 1: Ledger type label + Contact ID + Company ID
+   * A1:E1 merged, light gray text, 10px
+   * F1: Party contact ID
+   * G1: Company contact ID
    */
-  function writeHeader(sheet, party, startRow) {
-    const ledgerType = party.type === 'SUPPLIER' ? 'SUPPLIER LEDGER' :
-                       party.type === 'CUSTOMER' ? 'CUSTOMER LEDGER' :
-                       'CONTRACTOR LEDGER';
+  function writeRow1Header(sheet, party, company) {
+    sheet.setRowHeight(1, 30);
 
-    // Merge cells for header
-    sheet.getRange(startRow, 1, 1, 4).merge();
-    sheet.getRange(startRow, 5, 1, 3).merge();
+    // Determine ledger type
+    let ledgerType = 'LEDGER';
+    const type = (party.type || '').toUpperCase();
+    if (type.includes('SUP')) ledgerType = 'SUPPLIER LEDGER';
+    else if (type.includes('CUS')) ledgerType = 'CUSTOMER LEDGER';
+    else if (type.includes('CON')) ledgerType = 'CONTRACTOR LEDGER';
+    else if (type.includes('DEA')) ledgerType = 'DEALER LEDGER';
+    else if (type.includes('REN')) ledgerType = 'RENTAL LEDGER';
+    else if (type.includes('MAS')) ledgerType = 'MASTER LEDGER';
 
-    sheet.getRange(startRow, 1).setValue(ledgerType)
-      .setFontWeight('bold')
-      .setFontSize(14);
+    // A1:E1 merged - ledger type
+    sheet.getRange('A1:E1').merge()
+      .setValue(ledgerType)
+      .setFontSize(10)
+      .setFontColor('#999999')
+      .setVerticalAlignment('middle');
 
-    sheet.getRange(startRow, 5).setValue(party.id)
-      .setFontWeight('bold')
-      .setFontSize(14)
-      .setHorizontalAlignment('right');
+    // F1 - Party ID
+    sheet.getRange('F1')
+      .setValue(party.id || '')
+      .setFontSize(10)
+      .setHorizontalAlignment('right')
+      .setVerticalAlignment('middle');
 
-    return startRow + 2;
+    // G1 - Company ID
+    sheet.getRange('G1')
+      .setValue(company.id || '')
+      .setFontSize(10)
+      .setHorizontalAlignment('right')
+      .setVerticalAlignment('middle');
   }
 
   /**
-   * Writes party details section (parent company, address, contact)
+   * Rows 2-5: Company details (the org running the ledger)
    */
-  function writePartyDetails(sheet, party, startRow) {
-    const details = [
-      ['PARENT COMPANY NAME', party.parentCompany || ''],
-      ['ADDRESS LINE 1', party.address1 || ''],
-      ['ADDRESS LINE 2', party.address2 || ''],
-      ['CONTACT NUMBER / E-MAIL ADDRESS', party.contact || ''],
-      ['', ''],
-      ['PARTY NAME', party.name || ''],
-      ['ADDRESS LINE 1', party.partyAddress1 || party.address1 || ''],
-      ['ADDRESS LINE 2', party.partyAddress2 || party.address2 || ''],
-      ['GST NUMBER / CONTACT NUMBER / E-MAIL ADDRESS', party.gstNumber || ''],
-      ['', '']
-    ];
+  function writeCompanyDetails(sheet, company) {
+    // Row 2: Company Name - 16px, center, 30px height
+    sheet.setRowHeight(2, 30);
+    sheet.getRange('A2:F2').merge()
+      .setValue(company.name || '')
+      .setFontSize(16)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
 
-    for (let i = 0; i < details.length; i++) {
-      sheet.getRange(startRow + i, 1).setValue(details[i][0])
-        .setFontWeight('bold')
-        .setFontColor('#666666');
-      sheet.getRange(startRow + i, 2, 1, 6).merge();
-      sheet.getRange(startRow + i, 2).setValue(details[i][1]);
-    }
+    // Row 3: Address Line 1 - 10px, center, 22px height
+    sheet.setRowHeight(3, 22);
+    sheet.getRange('A3:F3').merge()
+      .setValue(company.address1 || '')
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
 
-    return startRow + details.length + 1;
+    // Row 4: Address Line 2 - 10px, center, 22px height
+    sheet.setRowHeight(4, 22);
+    sheet.getRange('A4:F4').merge()
+      .setValue(company.address2 || '')
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+
+    // Row 5: GST | Phone | Email - 10px, center, 22px height
+    sheet.setRowHeight(5, 22);
+    const contactInfo = buildContactInfo(company.gst, company.phone, company.email);
+    sheet.getRange('A5:F5').merge()
+      .setValue(contactInfo)
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
   }
 
   /**
-   * Writes the transaction table header and data
+   * Rows 7-10: Party details (supplier/customer whose ledger this is)
    */
-  function writeTransactionTable(sheet, transactions, startRow) {
-    // Table header
-    const headers = ['DATE', 'PARTICULARS', 'VOUCHER TYPE', 'REF', 'DEBIT', 'CREDIT', 'FILE'];
+  function writePartyDetails(sheet, party) {
+    // Row 7: Party Name - 16px, center, 30px height
+    sheet.setRowHeight(7, 30);
+    sheet.getRange('A7:F7').merge()
+      .setValue(party.name || '')
+      .setFontSize(16)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
 
-    sheet.getRange(startRow, 1, 1, headers.length).setValues([headers])
+    // Row 8: Address Line 1 - 10px, center, 22px height
+    sheet.setRowHeight(8, 22);
+    sheet.getRange('A8:F8').merge()
+      .setValue(party.address1 || '')
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+
+    // Row 9: Address Line 2 - 10px, center, 22px height
+    sheet.setRowHeight(9, 22);
+    sheet.getRange('A9:F9').merge()
+      .setValue(party.address2 || '')
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+
+    // Row 10: GST | Phone | Email - 10px, center, 22px height
+    sheet.setRowHeight(10, 22);
+    const contactInfo = buildContactInfo(party.gst, party.phone, party.email);
+    sheet.getRange('A10:F10').merge()
+      .setValue(contactInfo)
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+  }
+
+  /**
+   * Build contact info string with pipe separators
+   * Only includes non-empty values
+   */
+  function buildContactInfo(gst, phone, email) {
+    const parts = [];
+    if (gst) parts.push(gst);
+    if (phone) parts.push(phone);
+    if (email) parts.push(email);
+    return parts.join(' | ');
+  }
+
+  /**
+   * Row 12: Section header (empty merged row with borders)
+   */
+  function writeRow12SectionHeader(sheet, party) {
+    sheet.setRowHeight(12, 30);
+    sheet.getRange('A12:G12').merge()
+      .setFontSize(12)
+      .setBorder(true, null, true, null, null, null); // top and bottom borders
+  }
+
+  /**
+   * Row 13: Legend row with column headers
+   */
+  function writeRow13Legend(sheet) {
+    sheet.setRowHeight(13, 25);
+
+    const headers = ['DATE', 'PARTICULARS', 'VOUCHER TYPE', 'REF', 'DEBIT', 'CREDIT', ''];
+    sheet.getRange('A13:G13').setValues([headers])
+      .setFontSize(10)
       .setFontWeight('bold')
-      .setBackground('#4a86e8')
-      .setFontColor('white')
-      .setHorizontalAlignment('center');
+      .setBorder(true, null, true, null, null, null) // top and bottom borders
+      .setVerticalAlignment('middle');
 
-    // Transaction rows
-    if (transactions.length === 0) {
-      sheet.getRange(startRow + 1, 1, 1, headers.length).merge()
-        .setValue('No transactions found')
-        .setFontStyle('italic')
-        .setFontColor('#999999')
-        .setHorizontalAlignment('center');
-      return startRow + 3;
+    // Alignment
+    sheet.getRange('A13:B13').setHorizontalAlignment('left');
+    sheet.getRange('C13:D13').setHorizontalAlignment('center');
+    sheet.getRange('E13:F13').setHorizontalAlignment('right');
+  }
+
+  /**
+   * Write transaction rows starting from row 14
+   * Minimum 10 rows even if fewer transactions
+   * Returns the last row number of the transaction section
+   */
+  function writeTransactions(sheet, transactions) {
+    const startRow = 14;
+    const minRows = 10;
+    const actualRows = Math.max(transactions.length, minRows);
+
+    // Set row heights for all transaction rows
+    for (let i = 0; i < actualRows; i++) {
+      sheet.setRowHeight(startRow + i, 22);
     }
 
-    const dataRows = transactions.map(txn => [
-      txn.date,
-      txn.particulars || txn.narration || '',
-      txn.voucherType || txn.docType || '',
-      txn.reference || txn.docNo || '',
-      txn.debit || '',
-      txn.credit || '',
-      txn.fileLink || ''
-    ]);
+    // Write transaction data
+    if (transactions.length > 0) {
+      const dataRows = transactions.map(txn => [
+        txn.date || '',
+        txn.particulars || txn.narration || '',
+        txn.voucherType || txn.docType || '',
+        txn.reference || txn.docNo || '',
+        txn.debit || '',
+        txn.credit || '',
+        '' // File column - leave empty for now
+      ]);
 
-    sheet.getRange(startRow + 1, 1, dataRows.length, headers.length).setValues(dataRows);
+      sheet.getRange(startRow, 1, dataRows.length, 7).setValues(dataRows);
+    }
+
+    // Format all transaction rows
+    const range = sheet.getRange(startRow, 1, actualRows, 7);
+    range.setFontSize(9);
+
+    // Alignment: A, B left; C, D center; E, F currency
+    sheet.getRange(startRow, 1, actualRows, 2).setHorizontalAlignment('left');
+    sheet.getRange(startRow, 3, actualRows, 2).setHorizontalAlignment('center');
+    sheet.getRange(startRow, 5, actualRows, 2)
+      .setHorizontalAlignment('right')
+      .setNumberFormat(CURRENCY_FORMAT);
 
     // Format date column
-    sheet.getRange(startRow + 1, 1, dataRows.length, 1).setNumberFormat('dd-mm-yyyy');
+    if (transactions.length > 0) {
+      sheet.getRange(startRow, 1, transactions.length, 1).setNumberFormat('dd-mm-yyyy');
+    }
 
-    // Format currency columns
-    sheet.getRange(startRow + 1, 5, dataRows.length, 2).setNumberFormat('₹ #,##0.00');
-
-    return startRow + 1 + dataRows.length + 1;
+    return startRow + actualRows - 1;
   }
 
   /**
-   * Writes totals and closing balance
+   * Write totals section after transactions
+   * 2 row gap, then TOTAL, CLOSING BALANCE, GRAND TOTAL
    */
-  function writeTotals(sheet, transactions, startRow) {
+  function writeTotalsSection(sheet, transactions, lastTransactionRow) {
     // Calculate totals
     let totalDebit = 0;
     let totalCredit = 0;
@@ -160,62 +326,63 @@ const PartyLedger = (function() {
 
     const closingBalance = totalDebit - totalCredit;
 
-    // Total row
-    sheet.getRange(startRow, 1, 1, 4).merge();
-    sheet.getRange(startRow, 1).setValue('')
-      .setBackground('#f3f3f3');
+    // 2 row gap
+    const gapRow1 = lastTransactionRow + 1;
+    const gapRow2 = lastTransactionRow + 2;
+    sheet.setRowHeight(gapRow1, 20);
+    sheet.setRowHeight(gapRow2, 20);
 
-    sheet.getRange(startRow, 5).setValue(totalDebit)
-      .setNumberFormat('₹ #,##0.00')
+    // TOTAL row - only top border, bold
+    const totalRow = lastTransactionRow + 3;
+    sheet.setRowHeight(totalRow, 25);
+    sheet.getRange(totalRow, 2).setValue('TOTAL')
       .setFontWeight('bold')
-      .setBackground('#f3f3f3');
+      .setHorizontalAlignment('right');
+    sheet.getRange(totalRow, 5).setValue(totalDebit)
+      .setNumberFormat(CURRENCY_FORMAT)
+      .setFontWeight('bold');
+    sheet.getRange(totalRow, 6).setValue(totalCredit)
+      .setNumberFormat(CURRENCY_FORMAT)
+      .setFontWeight('bold');
+    sheet.getRange(totalRow, 1, 1, 7).setBorder(true, null, null, null, null, null); // top border only
 
-    sheet.getRange(startRow, 6).setValue(totalCredit)
-      .setNumberFormat('₹ #,##0.00')
+    // CLOSING BALANCE row - no border, not bold
+    const closingRow = totalRow + 1;
+    sheet.setRowHeight(closingRow, 25);
+    sheet.getRange(closingRow, 2).setValue('CLOSING BALANCE')
+      .setHorizontalAlignment('right');
+
+    // Put closing balance in debit or credit column based on sign
+    if (closingBalance >= 0) {
+      sheet.getRange(closingRow, 5).setValue(Math.abs(closingBalance))
+        .setNumberFormat(CURRENCY_FORMAT);
+      sheet.getRange(closingRow, 7).setValue('DR');
+    } else {
+      sheet.getRange(closingRow, 6).setValue(Math.abs(closingBalance))
+        .setNumberFormat(CURRENCY_FORMAT);
+      sheet.getRange(closingRow, 7).setValue('CR');
+    }
+
+    // GRAND TOTAL row - bold, top and bottom border
+    // Grand total = Total + Closing Balance adjustment (so Debit = Credit after adjustment)
+    const grandTotalRow = closingRow + 1;
+    sheet.setRowHeight(grandTotalRow, 25);
+    sheet.getRange(grandTotalRow, 2).setValue('GRAND TOTAL')
       .setFontWeight('bold')
-      .setBackground('#f3f3f3');
+      .setHorizontalAlignment('right');
 
-    sheet.getRange(startRow, 7).setValue('')
-      .setBackground('#f3f3f3');
+    // Grand totals balance out (Dr = Cr after closing balance)
+    const maxTotal = Math.max(totalDebit, totalCredit);
+    sheet.getRange(grandTotalRow, 5).setValue(maxTotal)
+      .setNumberFormat(CURRENCY_FORMAT)
+      .setFontWeight('bold');
+    sheet.getRange(grandTotalRow, 6).setValue(maxTotal)
+      .setNumberFormat(CURRENCY_FORMAT)
+      .setFontWeight('bold');
+    sheet.getRange(grandTotalRow, 1, 1, 7).setBorder(true, null, true, null, null, null); // top and bottom
 
-    // Closing balance row
-    startRow++;
-    sheet.getRange(startRow, 1, 1, 4).merge();
-    sheet.getRange(startRow, 1).setValue('CLOSING BALANCE')
-      .setFontWeight('bold')
-      .setHorizontalAlignment('right')
-      .setBackground('#d9ead3');
-
-    sheet.getRange(startRow, 5).setValue('')
-      .setBackground('#d9ead3');
-
-    sheet.getRange(startRow, 6).setValue(Math.abs(closingBalance))
-      .setNumberFormat('₹ #,##0.00')
-      .setFontWeight('bold')
-      .setBackground('#d9ead3');
-
-    sheet.getRange(startRow, 7).setValue(closingBalance >= 0 ? 'DR' : 'CR')
-      .setFontWeight('bold')
-      .setBackground('#d9ead3');
-
-    return startRow + 1;
-  }
-
-  /**
-   * Applies consistent styling to the ledger sheet
-   */
-  function applyLedgerStyling(sheet) {
-    // Set column widths
-    sheet.setColumnWidth(1, 100);  // Date
-    sheet.setColumnWidth(2, 350);  // Particulars
-    sheet.setColumnWidth(3, 120);  // Voucher Type
-    sheet.setColumnWidth(4, 80);   // Ref
-    sheet.setColumnWidth(5, 120);  // Debit
-    sheet.setColumnWidth(6, 120);  // Credit
-    sheet.setColumnWidth(7, 200);  // File
-
-    // Set default font
-    sheet.getDataRange().setFontFamily('Arial');
+    // Apply font to entire sheet
+    sheet.getDataRange().setFontFamily('Roboto Condensed');
   }
 
   /**
@@ -269,7 +436,7 @@ const PartyLedger = (function() {
     sheet.getRange(2, 1, rows.length, 8).setValues(rows);
 
     // Format currency columns
-    sheet.getRange(2, 4, rows.length, 3).setNumberFormat('₹ #,##0.00');
+    sheet.getRange(2, 4, rows.length, 3).setNumberFormat(CURRENCY_FORMAT);
 
     // Format date column
     sheet.getRange(2, 7, rows.length, 1).setNumberFormat('dd-mm-yyyy');
@@ -280,6 +447,9 @@ const PartyLedger = (function() {
         sheet.getRange(2 + i, 1, 1, 8).setBackground('#f8f9fa');
       }
     }
+
+    // Apply Roboto Condensed font
+    sheet.getDataRange().setFontFamily('Roboto Condensed');
   }
 
   /**

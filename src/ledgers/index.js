@@ -1,13 +1,18 @@
 /**
- * Ledgers Module
- * Generates Ledger Master and individual party ledgers
+ * Ledgers Module (LEGACY - DEPRECATED)
  *
- * @fileoverview Ledger generation for CG Accounts
+ * @deprecated This module is deprecated. Use generateAllLedgers() in main.js
+ * and PartyLedger.createPartyLedger() in party-ledger.js instead.
+ * This was designed for a centralized control sheet architecture.
+ * Current architecture (v0.4.0+) uses per-sheet CONFIG with ledger generation in main.js
+ *
+ * @fileoverview Legacy ledger generation - DO NOT USE
  */
 
 const Ledgers = (function() {
 
   /**
+   * @deprecated Use generateAllLedgers() in main.js
    * Generates all ledgers for an organization
    * @param {string} orgCode - Organization code
    * @param {Object} sourceData - Data from fetchers {purchase, sales, bank}

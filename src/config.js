@@ -1,14 +1,17 @@
 /**
- * Configuration Module
- * Reads and manages configuration from the control sheet
+ * Configuration Module (LEGACY - DEPRECATED)
  *
- * @fileoverview Configuration management for CG Accounts
+ * @deprecated This module is deprecated. Use Init.readConfig() instead.
+ * This was designed for a centralized control sheet architecture.
+ * Current architecture (v0.4.0+) uses per-sheet CONFIG tabs managed by init.js
+ *
+ * @fileoverview Legacy configuration management - DO NOT USE
  */
 
 const Config = (function() {
 
-  // Config sheet IDs - UPDATE THESE AFTER CREATING CONTROL SHEET
-  const CONTROL_SHEET_ID = ''; // TODO: Set after creating control sheet
+  // Config sheet IDs - DEPRECATED: This architecture is no longer used
+  const CONTROL_SHEET_ID = ''; // Not configured - module is deprecated
   const CACHE_DURATION = 300; // 5 minutes
 
   /**

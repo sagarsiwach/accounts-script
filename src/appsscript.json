@@ -4,17 +4,20 @@
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets.currentonly",
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/script.container.ui",
     "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/drive.file"
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive.readonly"
   ],
   "addOns": {
     "common": {
       "name": "CG Accounts",
       "logoUrl": "https://www.gstatic.com/images/branding/product/2x/apps_script_48dp.png",
       "useLocaleFromApp": true,
+      "layoutProperties": {
+        "primaryColor": "#4285F4"
+      },
       "homepageTrigger": {
         "runFunction": "onHomepage"
       }
@@ -22,6 +25,9 @@
     "sheets": {
       "homepageTrigger": {
         "runFunction": "onHomepage"
+      },
+      "onFileScopeGrantedTrigger": {
+        "runFunction": "onOpen"
       }
     }
   }
