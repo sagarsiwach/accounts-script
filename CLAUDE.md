@@ -38,8 +38,38 @@ Google Apps Script-based financial data aggregation system for Classic Group ent
 - COMPANY NAME, ADDRESS LINE 1, ADDRESS LINE 2, DISTRICT, STATE, PIN CODE
 - GST, MOBILE NO, EMAIL ID
 
-## Deployment
-Use `clasp push` to deploy to Google Apps Script. Remember to update version in appsscript.json before pushing.
+## Deployment Workflow
+
+### Step 1: Push code and create version
+```bash
+clasp push && clasp version "Description of changes"
+```
+This outputs a version number (e.g., "Created version 8").
+
+### Step 2: Update Google Cloud Marketplace SDK (REQUIRED)
+After each `clasp version`, you MUST update the Marketplace SDK:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select project: **cg-accounts** (or the linked GCP project)
+3. Navigate to: **APIs & Services → Marketplace SDK → App Configuration**
+4. Under **Google Workspace Add-on Deployment**:
+   - Update **Version** to the new version number (e.g., 8)
+5. Click **Save**
+
+⚠️ **Without this step, users will still see the old version of the add-on!**
+
+### Step 3: Git commit and push
+```bash
+git add -A && git commit -m "feat: Description" && git push origin master
+```
+
+### Quick Reference
+| Action | Command/Location |
+|--------|------------------|
+| Push to Apps Script | `clasp push` |
+| Create version | `clasp version "message"` |
+| Update Marketplace | GCP Console → Marketplace SDK → App Configuration → Version |
+| Current Script ID | `1unzAHnfpZuJM4sXnZW4JC8YLiD5MQDXm3rPU7xxB1O_hCamlEBnCMkJ_` |
 
 ## Organizations
 | Code | Name |
