@@ -4,7 +4,7 @@
  *
  * @fileoverview Entry points for the accounts aggregation system
  * @author Sagar Siwach
- * @version 0.4.0
+ * @version 0.5.0
  *
  * Architecture: Each org's Ledger sheet is self-contained with:
  * - CONFIG tab: All settings (sources, mappings)
