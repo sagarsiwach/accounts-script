@@ -49,12 +49,12 @@ This outputs a version number (e.g., "Created version 8").
 ### Step 2: Update Google Cloud Marketplace SDK (REQUIRED)
 After each `clasp version`, you MUST update the Marketplace SDK:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select project: **cg-accounts** (or the linked GCP project)
-3. Navigate to: **APIs & Services → Marketplace SDK → App Configuration**
-4. Under **Google Workspace Add-on Deployment**:
-   - Update **Version** to the new version number (e.g., 8)
-5. Click **Save**
+**Quick Link:** [Open Marketplace SDK Console](https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=cg-accounts-add-on)
+
+1. Open the link above (or go to GCP Console manually)
+2. Under **Google Workspace Add-on Deployment**:
+   - Update **Version** to the new version number
+3. Click **Save**
 
 ⚠️ **Without this step, users will still see the old version of the add-on!**
 
@@ -68,7 +68,7 @@ git add -A && git commit -m "feat: Description" && git push origin master
 |--------|------------------|
 | Push to Apps Script | `clasp push` |
 | Create version | `clasp version "message"` |
-| Update Marketplace | GCP Console → Marketplace SDK → App Configuration → Version |
+| Update Marketplace | [Open Marketplace SDK](https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=cg-accounts-add-on) |
 | Current Script ID | `1unzAHnfpZuJM4sXnZW4JC8YLiD5MQDXm3rPU7xxB1O_hCamlEBnCMkJ_` |
 
 ## Organizations
