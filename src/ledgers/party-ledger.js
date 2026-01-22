@@ -44,10 +44,11 @@ const PartyLedger = (function() {
    * @param {Object} party - Party data object
    * @param {Object} company - Company data object (the org whose ledger this is)
    * @param {Array} transactions - Array of transaction objects
+   * @param {string} ledgerCategory - Ledger category: 'SU' for supplier, 'CU' for customer
    * @returns {Object} Result with sheet name and row count
    */
-  function createPartyLedger(ss, party, company, transactions) {
-    const sheetName = sanitizeSheetName(party.id);
+  function createPartyLedger(ss, party, company, transactions, ledgerCategory) {
+    const sheetName = buildSheetName(party.name, ledgerCategory);
     let sheet = ss.getSheetByName(sheetName);
 
     // Create or clear sheet
@@ -81,7 +82,7 @@ const PartyLedger = (function() {
     }
 
     // === ROW 1: Header with ledger type and IDs ===
-    writeRow1Header(sheet, party, company);
+    writeRow1Header(sheet, party, company, ledgerCategory);
 
     // === ROWS 2-5: Company Details ===
     writeCompanyDetails(sheet, company);
@@ -105,11 +106,25 @@ const PartyLedger = (function() {
     const transactionEndRow = writeTransactions(sheet, transactions);
 
     // === TOTALS SECTION ===
-    writeTotalsSection(sheet, transactions, transactionEndRow);
+    const grandTotalRow = writeTotalsSection(sheet, transactions, transactionEndRow);
+
+    // === CLEANUP: Delete unused rows after GRAND TOTAL ===
+    const maxRows = sheet.getMaxRows();
+    if (maxRows > grandTotalRow) {
+      sheet.deleteRows(grandTotalRow + 1, maxRows - grandTotalRow);
+    }
+
+    // === CLEANUP: Ensure column G hidden and columns after G deleted ===
+    sheet.hideColumns(7);
+    const finalMaxCols = sheet.getMaxColumns();
+    if (finalMaxCols > 7) {
+      sheet.deleteColumns(8, finalMaxCols - 7);
+    }
 
     return {
       sheetName: sheetName,
-      rowCount: transactions.length
+      rowCount: transactions.length,
+      ledgerCategory: ledgerCategory
     };
   }
 
@@ -119,18 +134,11 @@ const PartyLedger = (function() {
    * F1: Party contact ID (light gray)
    * G1: Company contact ID (light gray)
    */
-  function writeRow1Header(sheet, party, company) {
+  function writeRow1Header(sheet, party, company, ledgerCategory) {
     sheet.setRowHeight(1, 30);
 
-    // Determine ledger type
-    let ledgerType = 'LEDGER';
-    const type = (party.type || '').toUpperCase();
-    if (type.includes('SUP')) ledgerType = 'SUPPLIER LEDGER';
-    else if (type.includes('CUS')) ledgerType = 'CUSTOMER LEDGER';
-    else if (type.includes('CON')) ledgerType = 'CONTRACTOR LEDGER';
-    else if (type.includes('DEA')) ledgerType = 'DEALER LEDGER';
-    else if (type.includes('REN')) ledgerType = 'RENTAL LEDGER';
-    else if (type.includes('MAS')) ledgerType = 'MASTER LEDGER';
+    // Determine ledger type based on category
+    let ledgerType = ledgerCategory === 'SU' ? 'SUPPLIER LEDGER' : 'CUSTOMER LEDGER';
 
     // A1:E1 merged - ledger type
     sheet.getRange('A1:E1').merge()
@@ -397,14 +405,38 @@ const PartyLedger = (function() {
 
     // Apply font to entire sheet
     sheet.getDataRange().setFontFamily('Roboto Condensed');
+
+    return grandTotalRow;
+  }
+
+  /**
+   * Builds sheet name in format: [SU] Party Name or [CU] Party Name
+   * @param {string} partyName - Party name
+   * @param {string} ledgerCategory - 'SU' or 'CU'
+   * @returns {string} Formatted sheet name
+   */
+  function buildSheetName(partyName, ledgerCategory) {
+    const prefix = '[' + (ledgerCategory || 'CU') + '] ';
+    let name = String(partyName || 'Unknown')
+      .replace(/[\/\\?*\[\]:]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Sheet names have max 100 chars, account for prefix
+    const maxNameLength = 100 - prefix.length;
+    if (name.length > maxNameLength) {
+      name = name.substring(0, maxNameLength - 3) + '...';
+    }
+
+    return prefix + name;
   }
 
   /**
    * Updates the Ledger Master index with all parties
    * @param {Spreadsheet} ss - Active spreadsheet
-   * @param {Array} parties - Array of party summary objects
+   * @param {Array} ledgers - Array of ledger summary objects (with ledgerCategory)
    */
-  function updateLedgerMasterIndex(ss, parties) {
+  function updateLedgerMasterIndex(ss, ledgers) {
     const sheet = ss.getSheetByName('Ledger Master');
     if (!sheet) return;
 
@@ -414,7 +446,7 @@ const PartyLedger = (function() {
       sheet.getRange(2, 1, lastRow - 1, 8).clear();
     }
 
-    if (parties.length === 0) {
+    if (ledgers.length === 0) {
       sheet.getRange(2, 1, 1, 8).merge()
         .setValue('No ledgers found. Run Refresh to generate.')
         .setFontStyle('italic')
@@ -423,25 +455,28 @@ const PartyLedger = (function() {
       return;
     }
 
-    // Sort parties by type then name
-    parties.sort((a, b) => {
-      if (a.type !== b.type) return a.type.localeCompare(b.type);
-      return a.name.localeCompare(b.name);
+    // Sort ledgers by category (SU first, then CU) then by name
+    ledgers.sort((a, b) => {
+      // SU before CU
+      if (a.ledgerCategory !== b.ledgerCategory) {
+        return a.ledgerCategory === 'SU' ? -1 : 1;
+      }
+      return (a.name || '').localeCompare(b.name || '');
     });
 
     // Build rows with hyperlinks
-    const rows = parties.map(party => {
-      const sheetName = sanitizeSheetName(party.id);
+    const rows = ledgers.map(ledger => {
+      const sheetName = buildSheetName(ledger.name, ledger.ledgerCategory);
       const link = '=HYPERLINK("#gid=' + getSheetGid(ss, sheetName) + '", "Open")';
 
       return [
-        party.id,
-        party.name,
-        party.type,
-        party.totalDebit || 0,
-        party.totalCredit || 0,
-        (party.totalDebit || 0) - (party.totalCredit || 0),
-        party.lastTransaction || '',
+        ledger.id,
+        ledger.name,
+        '[' + ledger.ledgerCategory + ']',  // Show category as [SU] or [CU]
+        ledger.totalDebit || 0,
+        ledger.totalCredit || 0,
+        (ledger.totalDebit || 0) - (ledger.totalCredit || 0),
+        ledger.lastTransaction || '',
         link
       ];
     });
@@ -495,7 +530,8 @@ const PartyLedger = (function() {
   return {
     createPartyLedger,
     updateLedgerMasterIndex,
-    sanitizeSheetName
+    sanitizeSheetName,
+    buildSheetName
   };
 
 })();

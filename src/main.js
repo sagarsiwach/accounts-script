@@ -507,6 +507,7 @@ function transformRow(row, headers, mapping, sourceType) {
 
 /**
  * Generates all party ledgers from transactions
+ * Separates into [SU] Supplier and [CU] Customer ledgers
  * @param {Spreadsheet} ss - Active spreadsheet
  * @param {Object} config - Configuration object
  * @param {Array} transactions - Array of all transactions
@@ -522,20 +523,29 @@ function generateAllLedgers(ss, config, transactions) {
     // Batch load all contacts once (performance optimization)
     const allContacts = fetchAllContacts(config);
 
-    // Group transactions by party
-    const partyMap = {};
+    // Group transactions by party AND ledger category
+    // Key format: "partyId|category" where category is SU or CU
+    const ledgerMap = {};
 
     for (const txn of transactions) {
       if (!txn.partyId) continue;
 
       const partyIdUpper = String(txn.partyId).toUpperCase();
 
-      if (!partyMap[partyIdUpper]) {
-        partyMap[partyIdUpper] = {
+      // Determine ledger category based on source and party type
+      const ledgerCategory = determineLedgerCategory(partyIdUpper, txn.docType, txn);
+
+      // Skip if category is null (e.g., contractors)
+      if (!ledgerCategory) continue;
+
+      const ledgerKey = partyIdUpper + '|' + ledgerCategory;
+
+      if (!ledgerMap[ledgerKey]) {
+        ledgerMap[ledgerKey] = {
           id: partyIdUpper,
           name: txn.partyName || '',
-          type: txn.docType === 'PURCHASE' ? 'SUPPLIER' :
-                txn.docType === 'SALES' ? 'CUSTOMER' : 'OTHER',
+          ledgerCategory: ledgerCategory,
+          type: ledgerCategory === 'SU' ? 'SUPPLIER' : 'CUSTOMER',
           transactions: [],
           totalDebit: 0,
           totalCredit: 0,
@@ -543,47 +553,46 @@ function generateAllLedgers(ss, config, transactions) {
         };
       }
 
-      partyMap[partyIdUpper].transactions.push(txn);
-      partyMap[partyIdUpper].totalDebit += parseFloat(txn.debit) || 0;
-      partyMap[partyIdUpper].totalCredit += parseFloat(txn.credit) || 0;
+      ledgerMap[ledgerKey].transactions.push(txn);
+      ledgerMap[ledgerKey].totalDebit += parseFloat(txn.debit) || 0;
+      ledgerMap[ledgerKey].totalCredit += parseFloat(txn.credit) || 0;
 
-      if (!partyMap[partyIdUpper].lastTransaction ||
-          txn.date > partyMap[partyIdUpper].lastTransaction) {
-        partyMap[partyIdUpper].lastTransaction = txn.date;
+      if (!ledgerMap[ledgerKey].lastTransaction ||
+          txn.date > ledgerMap[ledgerKey].lastTransaction) {
+        ledgerMap[ledgerKey].lastTransaction = txn.date;
       }
     }
 
-    const parties = Object.values(partyMap);
+    const ledgers = Object.values(ledgerMap);
 
     // Enrich party info from contacts (using pre-loaded data)
-    for (const party of parties) {
-      const contactInfo = allContacts[party.id];
+    for (const ledger of ledgers) {
+      const contactInfo = allContacts[ledger.id];
       if (contactInfo) {
-        party.name = contactInfo.name || party.name;
-        party.address1 = contactInfo.address1 || '';
-        party.address2 = contactInfo.address2 || '';
-        party.gst = contactInfo.gst || '';
-        party.phone = contactInfo.phone || '';
-        party.email = contactInfo.email || '';
-        party.type = contactInfo.type || party.type;
+        ledger.name = contactInfo.name || ledger.name;
+        ledger.address1 = contactInfo.address1 || '';
+        ledger.address2 = contactInfo.address2 || '';
+        ledger.gst = contactInfo.gst || '';
+        ledger.phone = contactInfo.phone || '';
+        ledger.email = contactInfo.email || '';
       }
     }
 
     // Create individual ledger sheets
-    for (const party of parties) {
+    for (const ledger of ledgers) {
       // Sort transactions by date
-      party.transactions.sort((a, b) => {
+      ledger.transactions.sort((a, b) => {
         const dateA = a.date instanceof Date ? a.date : new Date(a.date || 0);
         const dateB = b.date instanceof Date ? b.date : new Date(b.date || 0);
         return dateA - dateB;
       });
 
-      PartyLedger.createPartyLedger(ss, party, company, party.transactions);
+      PartyLedger.createPartyLedger(ss, ledger, company, ledger.transactions, ledger.ledgerCategory);
       result.count++;
     }
 
     // Update Ledger Master index
-    PartyLedger.updateLedgerMasterIndex(ss, parties);
+    PartyLedger.updateLedgerMasterIndex(ss, ledgers);
 
     // Reorder tabs: Ledger Master first, ledgers in middle, CONFIG and RUN_LOG at end
     Init.reorderTabs(ss);
@@ -597,6 +606,53 @@ function generateAllLedgers(ss, config, transactions) {
   }
 
   return result;
+}
+
+/**
+ * Determines the ledger category (SU or CU) based on party ID and transaction source
+ * @param {string} partyId - Party ID (uppercase)
+ * @param {string} docType - Document type: PURCHASE, SALES, or BANK
+ * @param {Object} txn - Transaction object (for bank debit/credit check)
+ * @returns {string|null} 'SU' for supplier, 'CU' for customer, null to skip
+ */
+function determineLedgerCategory(partyId, docType, txn) {
+  // Source-based routing takes priority
+  if (docType === 'PURCHASE') {
+    return 'SU';  // Purchase = Supplier ledger
+  }
+
+  if (docType === 'SALES') {
+    return 'CU';  // Sales = Customer ledger
+  }
+
+  // For BANK transactions, route based on party ID prefix
+  if (docType === 'BANK') {
+    if (partyId.includes('-SUP-')) {
+      return 'SU';
+    }
+    if (partyId.includes('-CUS-') || partyId.includes('-REN-') || partyId.includes('-DEA-')) {
+      return 'CU';
+    }
+    if (partyId.includes('-CON-')) {
+      return null;  // Skip contractors for now
+    }
+    if (partyId.includes('-MAS-')) {
+      // For Master parties in bank, use debit/credit to determine
+      // Credit to bank (we paid them) = Supplier
+      // Debit to bank (they paid us) = Customer
+      if ((txn.credit || 0) > 0) {
+        return 'SU';  // Payment made = Supplier
+      }
+      if ((txn.debit || 0) > 0) {
+        return 'CU';  // Payment received = Customer
+      }
+    }
+    // Default bank transactions without clear party type to Customer
+    return 'CU';
+  }
+
+  // Default fallback
+  return 'CU';
 }
 
 /**
@@ -756,8 +812,14 @@ function createSingleLedger(partyId) {
     // Fetch all transactions for this party
     const transactions = fetchTransactionsForParty(config, partyId);
 
+    // Determine ledger category based on party ID prefix
+    let ledgerCategory = 'CU';  // Default to customer
+    if (partyId.includes('-SUP-')) {
+      ledgerCategory = 'SU';
+    }
+
     // Create the ledger
-    const result = PartyLedger.createPartyLedger(ss, partyInfo, company, transactions);
+    const result = PartyLedger.createPartyLedger(ss, partyInfo, company, transactions, ledgerCategory);
 
     // Reorder tabs after creating ledger
     Init.reorderTabs(ss);
@@ -767,6 +829,7 @@ function createSingleLedger(partyId) {
       'Ledger Created',
       'Party: ' + partyId + '\n' +
       'Name: ' + (partyInfo.name || 'N/A') + '\n' +
+      'Type: [' + ledgerCategory + ']\n' +
       'Transactions: ' + transactions.length + '\n' +
       'Duration: ' + duration + 's',
       ui.ButtonSet.OK
