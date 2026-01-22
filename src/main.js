@@ -4,7 +4,7 @@
  *
  * @fileoverview Entry points for the accounts aggregation system
  * @author Sagar Siwach
- * @version 0.5.0
+ * @version 0.6.0
  *
  * Architecture: Each org's Ledger sheet is self-contained with:
  * - CONFIG tab: All settings (sources, mappings)
@@ -18,6 +18,19 @@
  * - Bank Statement: Bank transactions (multi-tab support, schema in row 5)
  * - Contacts: Central contacts sheet for party master data
  */
+
+/**
+ * Parses a numeric value, handling Indian number format with commas
+ * @param {*} val - Value to parse (number or string)
+ * @returns {number} Parsed number or 0
+ */
+function parseNumericValue(val) {
+  if (!val) return 0;
+  if (typeof val === 'number') return val;
+  // Remove currency symbols, commas, and spaces
+  const cleaned = String(val).replace(/[₹$,\s]/g, '');
+  return parseFloat(cleaned) || 0;
+}
 
 /**
  * Runs when the add-on is installed
@@ -1005,8 +1018,8 @@ function fetchBankDataAllTabs(config) {
           transactions.push({
             date: row[0],
             particulars: row[1] || '',
-            debit: parseFloat(row[2]) || 0,
-            credit: parseFloat(row[3]) || 0,
+            debit: parseNumericValue(row[2]),
+            credit: parseNumericValue(row[3]),
             partyId: String(row[5] || '').trim(),
             partyName: String(row[6] || ''),
             voucherType: String(row[8] || 'BANK'),

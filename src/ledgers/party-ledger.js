@@ -48,7 +48,7 @@ const PartyLedger = (function() {
    * @returns {Object} Result with sheet name and row count
    */
   function createPartyLedger(ss, party, company, transactions, ledgerCategory) {
-    const sheetName = buildSheetName(party.name, ledgerCategory);
+    const sheetName = buildSheetName(party.id, ledgerCategory);
     let sheet = ss.getSheetByName(sheetName);
 
     // Create or clear sheet
@@ -410,25 +410,18 @@ const PartyLedger = (function() {
   }
 
   /**
-   * Builds sheet name in format: [SU] Party Name or [CU] Party Name
-   * @param {string} partyName - Party name
+   * Builds sheet name in format: [SU] CG-SUP-0001 or [CU] CG-CUS-0001
+   * @param {string} partyId - Party ID (e.g., CG-SUP-0001)
    * @param {string} ledgerCategory - 'SU' or 'CU'
    * @returns {string} Formatted sheet name
    */
-  function buildSheetName(partyName, ledgerCategory) {
+  function buildSheetName(partyId, ledgerCategory) {
     const prefix = '[' + (ledgerCategory || 'CU') + '] ';
-    let name = String(partyName || 'Unknown')
+    let id = String(partyId || 'Unknown')
       .replace(/[\/\\?*\[\]:]/g, '-')
-      .replace(/\s+/g, ' ')
       .trim();
 
-    // Sheet names have max 100 chars, account for prefix
-    const maxNameLength = 100 - prefix.length;
-    if (name.length > maxNameLength) {
-      name = name.substring(0, maxNameLength - 3) + '...';
-    }
-
-    return prefix + name;
+    return prefix + id;
   }
 
   /**
@@ -466,7 +459,7 @@ const PartyLedger = (function() {
 
     // Build rows with hyperlinks
     const rows = ledgers.map(ledger => {
-      const sheetName = buildSheetName(ledger.name, ledger.ledgerCategory);
+      const sheetName = buildSheetName(ledger.id, ledger.ledgerCategory);
       const link = '=HYPERLINK("#gid=' + getSheetGid(ss, sheetName) + '", "Open")';
 
       return [
