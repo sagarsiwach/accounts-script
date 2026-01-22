@@ -244,9 +244,7 @@ function refreshData() {
       return result;
     }
 
-    // Fetch from sources
-    ui.showSidebar(HtmlService.createHtmlOutput('<p>Fetching Purchase data...</p>').setTitle('Refreshing'));
-
+    // Fetch from sources (sidebar handles its own loading UI)
     if (config.PURCHASE_SHEET_ID) {
       result.purchase = fetchSourceData(config, 'PURCHASE');
       Init.logRun('PURCHASE', 'Fetch', result.purchase.rows, 0,
